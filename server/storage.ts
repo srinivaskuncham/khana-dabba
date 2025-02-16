@@ -1,8 +1,11 @@
-import { User, MenuItem, InsertUser } from "@shared/schema";
+import { users, menuItems, type User, type MenuItem, type InsertUser } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -13,72 +16,42 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private menuItems: Map<number, MenuItem>;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  currentId: number;
 
   constructor() {
-    this.users = new Map();
-    this.menuItems = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
-    
-    // Seed menu items
-    const menuItems: MenuItem[] = [
-      {
-        id: 1,
-        name: "Butter Chicken",
-        description: "Creamy, rich curry with tender chicken",
-        price: 299,
-        imageUrl: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601",
-        category: "Mains",
-        isAvailable: true
-      },
-      {
-        id: 2,
-        name: "Palak Paneer",
-        description: "Cottage cheese in spinach gravy",
-        price: 249,
-        imageUrl: "https://images.unsplash.com/photo-1498837167922-ddd27525d352",
-        category: "Mains",
-        isAvailable: true
-      },
-      // Add more menu items as needed
-    ];
-
-    menuItems.forEach(item => this.menuItems.set(item.id, item));
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getMenuItems(): Promise<MenuItem[]> {
-    return Array.from(this.menuItems.values());
+    return await db.select().from(menuItems);
   }
 
   async getMenuItemsByCategory(category: string): Promise<MenuItem[]> {
-    return Array.from(this.menuItems.values()).filter(
-      item => item.category === category && item.isAvailable
-    );
+    return await db
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.category, category))
+      .where(eq(menuItems.isAvailable, true));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
