@@ -1,5 +1,4 @@
 import React from "react";
-import { useAuth } from "../hooks/use-auth";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -7,8 +6,6 @@ import { Label } from "../components/ui/label";
 import { useForm } from "react-hook-form";
 
 export default function AuthPage() {
-  const { user, loginMutation } = useAuth();
-
   const loginForm = useForm({
     defaultValues: {
       username: "",
@@ -16,37 +13,39 @@ export default function AuthPage() {
     },
   });
 
-  // Show a success message if logged in
-  if (user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-3xl text-center text-primary">
-              Login Successful
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center">Welcome, {user.name}!</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleLogin = async (data: { username: string; password: string }) => {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const user = await response.json();
+      console.log('Login successful:', user);
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-3xl text-center text-primary">
-            Khana Dabba Login
+          <CardTitle className="text-2xl text-center">
+            Login
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={loginForm.handleSubmit((data) =>
-              loginMutation.mutate(data)
-            )}
+            onSubmit={loginForm.handleSubmit(handleLogin)}
             className="space-y-4"
           >
             <div>
@@ -67,9 +66,8 @@ export default function AuthPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={loginMutation.isPending}
             >
-              {loginMutation.isPending ? "Logging in..." : "Login"}
+              Login
             </Button>
           </form>
         </CardContent>
