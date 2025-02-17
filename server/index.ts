@@ -103,7 +103,7 @@ process.on('SIGINT', shutdown);
     });
 
     // Start server
-    const PORT = 5000; // Always use port 5000 for Replit
+    const PORT = 5000;
     console.log('Starting server with environment:', {
       NODE_ENV: process.env.NODE_ENV,
       PORT: PORT,
@@ -111,7 +111,7 @@ process.on('SIGINT', shutdown);
       REPL_SLUG: process.env.REPL_SLUG
     });
 
-    server.listen(PORT, '0.0.0.0', () => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server started and listening on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
