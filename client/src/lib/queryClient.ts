@@ -12,8 +12,8 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // Always use relative URLs
-  const apiUrl = url.startsWith('http') ? url : url;
+  // Always use relative URLs and strip any preceding slashes
+  const apiUrl = url.startsWith('/') ? url : `/${url}`;
   const res = await fetch(apiUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -31,7 +31,12 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Ensure the URL is properly formatted for fetch
+    const url = (queryKey[0] as string).startsWith('/') 
+      ? queryKey[0] as string 
+      : `/${queryKey[0]}`;
+
+    const res = await fetch(url, {
       credentials: "include",
     });
 

@@ -17,9 +17,12 @@ app.use(helmet({
 // Configure CORS
 app.use(cors({
   credentials: true, // Allow credentials (cookies)
-  origin: true, // Allow all origins in development
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL // Use specific origin in production
+    : true, // Allow all origins in development
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['set-cookie'],
 }));
 
 // Rate limiting
