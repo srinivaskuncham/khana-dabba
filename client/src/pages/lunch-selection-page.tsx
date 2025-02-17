@@ -11,6 +11,7 @@ import { format, isSunday, isAfter, addDays, isSameDay, subMonths, addMonths } f
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function LunchSelectionPage() {
   const { user } = useAuth();
@@ -162,14 +163,26 @@ export default function LunchSelectionPage() {
       </header>
 
       <main className="container mx-auto py-8">
-        <div className="mb-8 flex gap-4">
+        <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {kids.map((kid) => (
             <Button
               key={kid.id}
               onClick={() => setSelectedKidId(kid.id)}
-              variant={selectedKidId === kid.id ? "default" : "outline"}
+              variant={selectedKidId === kid.id ? "default" : "ghost"}
+              className="h-auto p-2 flex flex-col items-center gap-2"
             >
-              {kid.name}
+              <Avatar className="h-16 w-16">
+                <AvatarImage 
+                  src={kid.profilePicture || 
+                    `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${kid.name}&backgroundColor=b6e3f4,c0aede,d1d4f9`
+                  } 
+                  alt={kid.name} 
+                />
+                <AvatarFallback>
+                  {kid.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium">{kid.name}</span>
             </Button>
           ))}
         </div>
@@ -208,23 +221,28 @@ export default function LunchSelectionPage() {
                       {`
                         .rdp {
                           margin: 0;
+                          --rdp-cell-size: min(40px, 6vw);
                           width: 100%;
                         }
                         .rdp-month {
                           background-color: white;
-                          padding: 1.5rem;
+                          padding: 1rem;
                           border-radius: 0.5rem;
                           width: 100%;
                         }
                         .rdp-cell {
-                          padding: 0.5rem;
+                          padding: 0;
                           text-align: center;
                         }
+                        .rdp-table {
+                          width: 100%;
+                          max-width: 100%;
+                        }
                         .rdp-day {
-                          width: 2.5rem;
-                          height: 2.5rem;
+                          width: var(--rdp-cell-size);
+                          height: var(--rdp-cell-size);
                           border-radius: 9999px;
-                          font-size: 0.875rem;
+                          font-size: clamp(0.75rem, 1.5vw, 0.875rem);
                           margin: 0 auto;
                           display: flex;
                           align-items: center;

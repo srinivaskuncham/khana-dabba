@@ -11,7 +11,7 @@ import { Redirect } from "wouter";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
-  
+
   const loginForm = useForm({
     defaultValues: {
       username: "",
@@ -26,6 +26,8 @@ export default function AuthPage() {
       password: "",
       name: "",
       email: "",
+      gender: "",
+      profilePicture: "",
     },
   });
 
@@ -102,6 +104,19 @@ export default function AuthPage() {
                       type="email"
                       {...registerForm.register("email")}
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="reg-gender">Gender</Label>
+                    <select
+                      id="reg-gender"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2"
+                      {...registerForm.register("gender")}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="reg-username">Username</Label>

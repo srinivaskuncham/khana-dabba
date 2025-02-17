@@ -9,6 +9,8 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
+  gender: text("gender"),  // Add gender field
+  profilePicture: text("profile_picture"),  // Add profile picture URL
 });
 
 export const kids = pgTable("kids", {
@@ -17,6 +19,8 @@ export const kids = pgTable("kids", {
   grade: text("grade").notNull(),
   school: text("school").notNull(),
   rollNumber: text("roll_number").notNull(),
+  gender: text("gender"),  // Add gender field
+  profilePicture: text("profile_picture"),  // Add profile picture URL
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 

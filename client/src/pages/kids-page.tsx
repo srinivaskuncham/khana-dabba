@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function KidsPage() {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export default function KidsPage() {
       grade: "",
       school: "",
       rollNumber: "",
+      gender: "",
     },
   });
 
@@ -151,6 +153,19 @@ export default function KidsPage() {
                 <Label htmlFor="rollNumber">Roll Number</Label>
                 <Input id="rollNumber" {...form.register("rollNumber")} />
               </div>
+              <div>
+                <Label htmlFor="gender">Gender</Label>
+                <select
+                  id="gender"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2"
+                  {...form.register("gender")}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
               <Button
                 type="submit"
                 className="w-full"
@@ -166,8 +181,19 @@ export default function KidsPage() {
           {kids.map((kid) => (
             <Card key={kid.id}>
               <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <span>{kid.name}</span>
+                <CardTitle className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage
+                      src={kid.profilePicture || `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${kid.name}&backgroundColor=b6e3f4,c0aede,d1d4f9`}
+                      alt={kid.name}
+                    />
+                    <AvatarFallback>
+                      {kid.name.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <span>{kid.name}</span>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       variant="ghost"
@@ -197,6 +223,9 @@ export default function KidsPage() {
                   <p>
                     <span className="font-medium">Roll Number:</span>{" "}
                     {kid.rollNumber}
+                  </p>
+                  <p>
+                    <span className="font-medium">Gender:</span> {kid.gender}
                   </p>
                 </div>
               </CardContent>
