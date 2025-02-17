@@ -96,29 +96,18 @@ export default function LunchSelectionPage() {
     },
   });
 
+  // Update the clearSelectionMutation implementation
   const clearSelectionMutation = useMutation({
     mutationFn: async ({ id }: { id: number }) => {
       if (!selectedKidId) throw new Error("No kid selected");
-      const res = await apiRequest(
+      await apiRequest(
         "DELETE",
         `/api/kids/${selectedKidId}/lunch-selections/${id}`
       );
-      return res.json();
     },
     onSuccess: () => {
-      // Invalidate queries for both current and next month if selections span months
-      const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
-      [...months].forEach(monthKey => {
-        const [year, month] = monthKey.split('/');
-        queryClient.invalidateQueries({ 
-          queryKey: [
-            `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
-          ],
-        });
-      });
-      toast({
-        title: "Success",
-        description: "Lunch selections cleared successfully",
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/kids"],
       });
     },
   });
@@ -200,10 +189,23 @@ export default function LunchSelectionPage() {
         selectedDates.map(async (date) => {
           const existingSelection = getSelectionForDate(date);
           if (existingSelection) {
-            await clearSelectionMutation.mutate({ id: existingSelection.id });
+            await clearSelectionMutation.mutateAsync({ id: existingSelection.id });
           }
         })
       );
+
+      // Invalidate queries for both current and next month
+      const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
+      [...months].forEach(monthKey => {
+        const [year, month] = monthKey.split('/');
+        queryClient.invalidateQueries({ 
+          queryKey: [
+            `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
+          ],
+        });
+      });
+
+      // Reset the state and show success message
       setSelectedDates([]);
       setStep("dates");
       toast({
@@ -459,7 +461,7 @@ export default function LunchSelectionPage() {
                       <Button
                         variant="destructive"
                         className="flex-1"
-                        onClick={() => handleClearSelections()}
+                        onClick={handleClearSelections}
                         disabled={selectedDates.every(date => !getSelectionForDate(date))}
                       >
                         Reset Choices
