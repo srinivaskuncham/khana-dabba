@@ -16,19 +16,37 @@ declare global {
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${derivedKey.toString("hex")}.${salt}`;
+  try {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    const hashedPassword = buf.toString("hex");
+    console.log('Hashing password:', { salt, hashedLength: hashedPassword.length });
+    return `${hashedPassword}.${salt}`;
+  } catch (error) {
+    console.error('Error hashing password:', error);
+    throw error;
+  }
 }
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
     const [hashedPassword, salt] = stored.split(".");
-    const suppliedDerivedKey = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    const storedDerivedKey = Buffer.from(hashedPassword, "hex");
-    const result = timingSafeEqual(suppliedDerivedKey, storedDerivedKey);
-    console.log('Password comparison:', { result });
-    return result;
+    console.log('Password comparison:', {
+      hashedLength: hashedPassword.length,
+      saltLength: salt.length
+    });
+
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    const suppliedHashed = suppliedBuf.toString("hex");
+    const storedBuf = Buffer.from(hashedPassword, "hex");
+
+    console.log('Comparing hashes:', {
+      suppliedLength: suppliedHashed.length,
+      storedLength: hashedPassword.length,
+      match: suppliedHashed === hashedPassword
+    });
+
+    return timingSafeEqual(suppliedBuf, storedBuf);
   } catch (error) {
     console.error('Error comparing passwords:', error);
     return false;
@@ -37,13 +55,13 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: "your-secret-key", // In production, use environment variable
+    secret: "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: false, // Set to true in production with HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: false,
+      maxAge: 24 * 60 * 60 * 1000,
       httpOnly: true,
     }
   };
@@ -102,7 +120,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register new user
   app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
@@ -130,7 +147,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Login
   app.post("/api/login", (req, res, next) => {
     console.log('Login request received:', { username: req.body.username });
     passport.authenticate("local", (err, user, info) => {
@@ -153,7 +169,6 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Logout
   app.post("/api/logout", (req, res, next) => {
     const username = req.user?.username;
     console.log('Logout request:', { username });
@@ -167,7 +182,6 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Get current user
   app.get("/api/user", (req, res) => {
     console.log('User check:', { 
       isAuthenticated: req.isAuthenticated(),
