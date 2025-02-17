@@ -20,20 +20,39 @@ const KEY_LENGTH = 64;
 async function hashPassword(password: string) {
   const salt = randomBytes(SALT_LENGTH);
   const hash = (await scryptAsync(password, salt, KEY_LENGTH)) as Buffer;
-  return `${hash.toString('hex')}.${salt.toString('hex')}`;
+  const result = `${hash.toString('hex')}.${salt.toString('hex')}`;
+  console.log('Generated hash:', {
+    hashLength: hash.length,
+    saltLength: salt.length,
+    resultLength: result.length,
+    resultFormat: result.includes('.') ? 'hash.salt' : 'invalid'
+  });
+  return result;
 }
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
+    console.log('Comparing passwords:', {
+      storedLength: stored.length,
+      storedFormat: stored.includes('.') ? 'hash.salt' : 'invalid',
+    });
+
     const [hashedPart, saltPart] = stored.split(".");
+
+    if (!hashedPart || !saltPart) {
+      console.error('Invalid stored password format - missing hash or salt');
+      return false;
+    }
+
     const salt = Buffer.from(saltPart, 'hex');
     const storedHash = Buffer.from(hashedPart, 'hex');
     const suppliedHash = (await scryptAsync(supplied, salt, KEY_LENGTH)) as Buffer;
 
-    console.log('Password comparison:', {
+    console.log('Password comparison details:', {
       storedHashLength: storedHash.length,
       suppliedHashLength: suppliedHash.length,
-      saltLength: salt.length
+      saltLength: salt.length,
+      expectedLength: KEY_LENGTH
     });
 
     return timingSafeEqual(storedHash, suppliedHash);
@@ -75,11 +94,13 @@ export function setupAuth(app: Express) {
         console.log('Found user:', { 
           username, 
           userId: user.id,
-          passwordLength: user.password.length 
+          passwordLength: user.password.length,
+          passwordFormat: user.password.includes('.') ? 'hash.salt' : 'invalid'
         });
 
         const isValid = await comparePasswords(password, user.password);
-        console.log('Password validation:', { 
+
+        console.log('Password validation result:', { 
           username, 
           isValid,
           suppliedPasswordLength: password.length,
@@ -124,18 +145,35 @@ export function setupAuth(app: Express) {
   // Helper function to create admin user
   async function createAdminUser() {
     try {
+      const adminUsername = "admin";
       const adminPassword = "admin123";
-      const hashedPassword = await hashPassword(adminPassword);
-      console.log('Creating admin user with hash length:', hashedPassword.length);
 
-      await storage.createUser({
-        username: "admin",
+      // Check if admin already exists
+      const existingAdmin = await storage.getUserByUsername(adminUsername);
+      if (existingAdmin) {
+        console.log('Admin user already exists, skipping creation');
+        return;
+      }
+
+      const hashedPassword = await hashPassword(adminPassword);
+      console.log('Creating admin user:', {
+        username: adminUsername,
+        hashLength: hashedPassword.length,
+        hashFormat: hashedPassword.includes('.') ? 'hash.salt' : 'invalid'
+      });
+
+      const user = await storage.createUser({
+        username: adminUsername,
         password: hashedPassword,
         name: "Admin User",
         email: "admin@khanadabba.com",
         isAdmin: true
       });
-      console.log('Admin user created successfully');
+
+      console.log('Admin user created successfully:', {
+        userId: user.id,
+        username: user.username
+      });
     } catch (error) {
       console.error('Error creating admin user:', error);
     }
@@ -154,7 +192,8 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(req.body.password);
       console.log('Created hash for new user:', { 
         username: req.body.username, 
-        hashLength: hashedPassword.length 
+        hashLength: hashedPassword.length,
+        hashFormat: hashedPassword.includes('.') ? 'hash.salt' : 'invalid'
       });
 
       const user = await storage.createUser({
@@ -177,7 +216,11 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log('Login request received:', { username: req.body.username });
+    console.log('Login request received:', { 
+      username: req.body.username,
+      passwordLength: req.body.password?.length
+    });
+
     passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
       if (err) {
         console.error('Authentication error:', err);
