@@ -14,12 +14,10 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP in development
 }));
 
-// Configure CORS
+// Configure CORS for same origin
 app.use(cors({
   credentials: true, // Allow credentials (cookies)
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL // Use specific origin in production
-    : true, // Allow all origins in development
+  origin: true, // Allow same origin in development
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['set-cookie'],
@@ -91,9 +89,7 @@ process.on('SIGINT', shutdown);
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', err);
       const status = err.status || err.statusCode || 500;
-      const message = process.env.NODE_ENV === "production"
-        ? "Internal Server Error"
-        : err.message || "Internal Server Error";
+      const message = err.message || "Internal Server Error";
       res.status(status).json({ message });
     });
 
