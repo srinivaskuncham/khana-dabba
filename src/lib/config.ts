@@ -1,6 +1,6 @@
 // Configuration constants for the application
-export const API_URL = 'http://localhost:5000'; // Update this with your production API URL for release
+export const API_URL = ''; // The empty string will make it use the same origin as the frontend
 
-// Other configuration constants can be added here
+// Other configuration constants
 export const APP_NAME = 'Khana Dabba';
 export const APP_VERSION = '1.0.0';
