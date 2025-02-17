@@ -41,7 +41,7 @@ export default function AuthPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-3xl text-center text-primary">
-              LunchDabba.in
+              Khana Dabba
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -150,7 +150,7 @@ export default function AuthPage() {
       <div className="hidden lg:block flex-1 bg-primary/10 p-8">
         <div className="h-full flex flex-col items-center justify-center text-center space-y-8">
           <h1 className="text-4xl font-bold text-gray-900">
-            Welcome to LunchDabba.in
+            Welcome to Khana Dabba
           </h1>
           <p className="text-xl text-gray-600 max-w-md">
             Your one-stop destination for delicious homestyle Indian meals,

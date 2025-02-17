@@ -5,7 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { LogOut, User, UsersRound, CalendarCheck } from "lucide-react";
+import { Menu, LogOut, User, UsersRound, CalendarCheck } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
@@ -20,35 +26,41 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-primary p-4">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">LunchDabba.in</h1>
-          <div className="flex gap-4">
-            <Link href="/lunch-selection">
-              <Button variant="secondary" className="flex gap-2">
-                <CalendarCheck size={18} />
-                Lunch Selection
+          <h1 className="text-2xl font-bold text-white">Khana Dabba</h1>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="icon">
+                <Menu className="h-5 w-5" />
               </Button>
-            </Link>
-            <Link href="/kids">
-              <Button variant="secondary" className="flex gap-2">
-                <UsersRound size={18} />
-                Kids
-              </Button>
-            </Link>
-            <Link href="/profile">
-              <Button variant="secondary" className="flex gap-2">
-                <User size={18} />
-                Profile
-              </Button>
-            </Link>
-            <Button
-              variant="secondary"
-              onClick={() => logoutMutation.mutate()}
-              className="flex gap-2"
-            >
-              <LogOut size={18} />
-              Logout
-            </Button>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <Link href="/lunch-selection">
+                <DropdownMenuItem className="cursor-pointer">
+                  <CalendarCheck className="mr-2 h-4 w-4" />
+                  Lunch Selection
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/kids">
+                <DropdownMenuItem className="cursor-pointer">
+                  <UsersRound className="mr-2 h-4 w-4" />
+                  Kids
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/profile">
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => logoutMutation.mutate()}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </nav>
 
