@@ -158,38 +158,47 @@ export class DatabaseStorage implements IStorage {
   ): Promise<LunchSelection | undefined> {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
 
     // First check if the selection can be modified (>24h before delivery)
     const [existingSelection] = await db
       .select()
       .from(lunchSelections)
-      .where(
-        and(
-          eq(lunchSelections.id, id),
-          gte(lunchSelections.date, tomorrow)
-        )
-      );
+      .where(eq(lunchSelections.id, id));
 
     if (!existingSelection) {
       return undefined;
     }
 
-    // Create history record
-    await db.insert(selectionHistory).values({
-      selectionId: id,
-      oldMenuItemId: existingSelection.menuItemId,
-      newMenuItemId: selection.menuItemId!,
-      changedBy: userId,
-    });
+    // Convert the date string to Date object for comparison
+    const selectionDate = new Date(existingSelection.date);
+    selectionDate.setHours(0, 0, 0, 0);
 
-    // Update the selection
-    const [updated] = await db
-      .update(lunchSelections)
-      .set({ ...selection, modifiedAt: new Date() })
-      .where(eq(lunchSelections.id, id))
-      .returning();
+    if (selectionDate < tomorrow) {
+      return undefined;
+    }
 
-    return updated;
+    try {
+      // Create history record
+      await db.insert(selectionHistory).values({
+        selectionId: id,
+        oldMenuItemId: existingSelection.menuItemId,
+        newMenuItemId: selection.menuItemId!,
+        changedBy: userId,
+      });
+
+      // Update the selection
+      const [updated] = await db
+        .update(lunchSelections)
+        .set({ ...selection, modifiedAt: new Date() })
+        .where(eq(lunchSelections.id, id))
+        .returning();
+
+      return updated;
+    } catch (error) {
+      console.error('Error updating lunch selection:', error);
+      return undefined;
+    }
   }
 
   async deleteLunchSelection(id: number): Promise<boolean> {

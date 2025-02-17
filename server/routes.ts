@@ -68,10 +68,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selection = await storage.createLunchSelection(selectionData);
       res.status(201).json(selection);
     } catch (error) {
+      console.error('Error creating lunch selection:', error);
       if (error instanceof ZodError) {
         res.status(400).json({ message: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create lunch selection" });
+        res.status(500).json({ 
+          message: "Failed to create lunch selection",
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   });
@@ -96,16 +100,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!updated) {
         return res.status(400).json({
-          message: "Cannot modify selection within 24 hours of delivery",
+          message: "Cannot modify selection - either it doesn't exist, or it's within 24 hours of delivery",
         });
       }
 
       res.json(updated);
     } catch (error) {
+      console.error('Error updating lunch selection:', error);
       if (error instanceof ZodError) {
         res.status(400).json({ message: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to update lunch selection" });
+        res.status(500).json({ 
+          message: "Failed to update lunch selection",
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   });
@@ -129,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.sendStatus(204);
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete lunch selection" });
+      res.status(500).json({ message: "Failed to delete lunch selection", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -159,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof ZodError) {
         res.status(400).json({ message: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to update user profile" });
+        res.status(500).json({ message: "Failed to update user profile", error: error instanceof Error ? error.message : String(error) });
       }
     }
   });
@@ -182,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof ZodError) {
         res.status(400).json({ message: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create kid profile" });
+        res.status(500).json({ message: "Failed to create kid profile", error: error instanceof Error ? error.message : String(error) });
       }
     }
   });
@@ -205,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof ZodError) {
         res.status(400).json({ message: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to update kid profile" });
+        res.status(500).json({ message: "Failed to update kid profile", error: error instanceof Error ? error.message : String(error) });
       }
     }
   });

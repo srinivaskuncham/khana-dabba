@@ -140,24 +140,41 @@ export default function LunchSelectionPage() {
 
   const handleSaveSelections = async (menuItemId: number) => {
     try {
-      const promises = selectedDates.map(async (date) => {
+      // Process updates sequentially to avoid race conditions
+      for (const date of selectedDates) {
         const existingSelection = getSelectionForDate(date);
         if (existingSelection) {
           // Update existing selection
-          return updateSelectionMutation.mutateAsync({
+          await updateSelectionMutation.mutateAsync({
             id: existingSelection.id,
             menuItemId,
           });
         } else {
           // Create new selection
-          return createSelectionMutation.mutateAsync({ date, menuItemId });
+          await createSelectionMutation.mutateAsync({ 
+            date, 
+            menuItemId 
+          });
         }
-      });
+      }
 
-      await Promise.all(promises);
       setSelectedDates([]);
       setStep("dates");
+
+      // Invalidate all affected months
+      const months = new Set(selectedDates.map(date => 
+        `${date.getFullYear()}/${date.getMonth() + 1}`
+      ));
+      for (const monthKey of months) {
+        const [year, month] = monthKey.split('/');
+        await queryClient.invalidateQueries({ 
+          queryKey: [
+            `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
+          ],
+        });
+      }
     } catch (error: any) {
+      console.error('Error saving selections:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to save lunch selections",
