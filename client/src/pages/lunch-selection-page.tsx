@@ -3,13 +3,14 @@ import { Kid, MonthlyMenuItem, LunchSelection } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, CalendarCheck } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
-import { format, isSunday, isAfter, addDays } from "date-fns";
+import { format, isSunday, isAfter, addDays, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 export default function LunchSelectionPage() {
   const { user } = useAuth();
@@ -27,6 +28,15 @@ export default function LunchSelectionPage() {
     queryKey: [
       `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
+  });
+
+  const { data: existingSelections = [] } = useQuery<(LunchSelection & { menuItem: MonthlyMenuItem })[]>({
+    queryKey: [
+      `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+        currentMonth.getMonth() + 1
+      }`,
+    ],
+    enabled: !!selectedKidId,
   });
 
   const createSelectionMutation = useMutation({
@@ -58,16 +68,8 @@ export default function LunchSelectionPage() {
 
   const tomorrow = addDays(new Date(), 1);
 
-  const handleDateSelect = (date: Date) => {
-    setSelectedDates((current) => {
-      const dateExists = current.some(
-        (d) => d.toDateString() === date.toDateString()
-      );
-      if (dateExists) {
-        return current.filter((d) => d.toDateString() !== date.toDateString());
-      }
-      return [...current, date];
-    });
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    setSelectedDates(dates || []);
   };
 
   const handleSaveSelections = async (menuItemId: number) => {
@@ -92,6 +94,12 @@ export default function LunchSelectionPage() {
     before: tomorrow,
     after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
     filter: (date: Date) => isSunday(date),
+  };
+
+  const getSelectionForDate = (date: Date) => {
+    return existingSelections.find((selection) =>
+      isSameDay(new Date(selection.date), date)
+    );
   };
 
   return (
@@ -134,20 +142,53 @@ export default function LunchSelectionPage() {
               <CardContent>
                 {step === "dates" ? (
                   <>
+                    <style>
+                      {`
+                        .rdp {
+                          margin: 0;
+                        }
+                        .rdp-month {
+                          background-color: white;
+                          padding: 1rem;
+                          border-radius: 0.5rem;
+                        }
+                        .rdp-cell {
+                          padding: 0.5rem;
+                        }
+                        .rdp-day {
+                          width: 2.5rem;
+                          height: 2.5rem;
+                          border-radius: 9999px;
+                        }
+                        .rdp-day_selected {
+                          background-color: hsl(var(--primary));
+                        }
+                        .rdp-day_selected:hover {
+                          background-color: hsl(var(--primary));
+                        }
+                        .lunch-selected {
+                          background-color: hsl(142.1 76.2% 36.3%);
+                          color: white;
+                        }
+                        .lunch-selected:hover {
+                          background-color: hsl(142.1 76.2% 36.3%);
+                        }
+                      `}
+                    </style>
                     <DayPicker
                       mode="multiple"
                       selected={selectedDates}
-                      onSelect={(dates) => setSelectedDates(dates || [])}
+                      onSelect={handleDateSelect}
                       disabled={disabledDays}
                       modifiers={{
                         selected: selectedDates,
+                        lunchSelected: existingSelections.map(s => new Date(s.date)),
                       }}
-                      modifiersStyles={{
-                        selected: {
-                          backgroundColor: "hsl(var(--primary))",
-                          color: "white",
-                        },
+                      modifiersClassNames={{
+                        selected: "rdp-day_selected",
+                        lunchSelected: "lunch-selected",
                       }}
+                      className="border rounded-lg p-4"
                     />
                     <Button
                       className="w-full mt-4"
@@ -162,14 +203,27 @@ export default function LunchSelectionPage() {
                     <div>
                       <h3 className="font-medium mb-4">Selected Dates:</h3>
                       <div className="space-y-2">
-                        {selectedDates.map((date) => (
-                          <div
-                            key={date.toISOString()}
-                            className="text-sm text-gray-600"
-                          >
-                            {format(date, "EEEE, MMMM d, yyyy")}
-                          </div>
-                        ))}
+                        {selectedDates.map((date) => {
+                          const existingSelection = getSelectionForDate(date);
+                          return (
+                            <div
+                              key={date.toISOString()}
+                              className={cn(
+                                "p-3 rounded-lg",
+                                existingSelection ? "bg-green-50 border border-green-200" : "border"
+                              )}
+                            >
+                              <div className="font-medium">
+                                {format(date, "EEEE, MMMM d, yyyy")}
+                              </div>
+                              {existingSelection && (
+                                <div className="text-sm text-green-600 mt-1">
+                                  Current choice: {existingSelection.menuItem.name}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                     <Button
