@@ -6,13 +6,16 @@ import "./index.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
       retry: false,
     },
   },
 });
 
-createRoot(document.getElementById("root")!).render(
+const root = document.getElementById("root");
+if (!root) throw new Error("No root element found");
+
+createRoot(root).render(
   <QueryClientProvider client={queryClient}>
     <App />
   </QueryClientProvider>
