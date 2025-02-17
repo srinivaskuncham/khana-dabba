@@ -11,9 +11,9 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   getMenuItems(): Promise<MenuItem[]>;
   getMenuItemsByCategory(category: string): Promise<MenuItem[]>;
-  // New methods for kids
   getKidsByUserId(userId: number): Promise<Kid[]>;
   getKid(kidId: number): Promise<Kid | undefined>;
   createKid(kid: InsertKid): Promise<Kid>;
@@ -47,6 +47,15 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
   async getMenuItems(): Promise<MenuItem[]> {
     return await db.select().from(menuItems);
   }
@@ -55,8 +64,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(menuItems)
-      .where(eq(menuItems.category, category))
-      .where(eq(menuItems.isAvailable, true));
+      .where(eq(menuItems.category, category));
   }
 
   // Kids related methods
