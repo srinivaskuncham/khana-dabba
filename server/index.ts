@@ -1,9 +1,29 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 
 const app = express();
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === "production" 
+    ? ["https://*.repl.co"] // Allow only Replit domains in production
+    : true, // Allow all origins in development
+  credentials: true
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -40,7 +60,7 @@ app.use((req, res, next) => {
     console.log('Routes registered');
 
     // Setup Vite or static serving
-    if (app.get("env") === "development") {
+    if (process.env.NODE_ENV === "development") {
       await setupVite(app, server);
       console.log('Vite development server setup completed');
     } else {
@@ -52,13 +72,20 @@ app.use((req, res, next) => {
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', err);
       const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+      const message = process.env.NODE_ENV === "production" 
+        ? "Internal Server Error" // Don't expose error details in production
+        : err.message || "Internal Server Error";
       res.status(status).json({ message });
+    });
+
+    // 404 handler
+    app.use((_req: Request, res: Response) => {
+      res.status(404).json({ message: "Not Found" });
     });
 
     // Start server
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server started on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
