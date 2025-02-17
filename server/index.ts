@@ -5,22 +5,25 @@ import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
+import path from "path";
 
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP in development
+}));
+
+// Configure CORS for Replit's domain
 app.use(cors({
-  origin: process.env.NODE_ENV === "production" 
-    ? ["https://*.repl.co"] // Allow only Replit domains in production
-    : true, // Allow all origins in development
+  origin: true, // Allow all origins for testing
   credentials: true
 }));
 
-// Rate limiting
+// Rate limiting - gentle limits for testing
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 200 // limit each IP to 200 requests per windowMs
 });
 app.use(limiter);
 
@@ -33,14 +36,6 @@ app.use((req, res, next) => {
   const path = req.path;
   console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${path}`);
 
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     console.log(`[${new Date().toISOString()}] Response sent: ${req.method} ${path} ${res.statusCode} in ${duration}ms`);
@@ -48,6 +43,15 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Handle graceful shutdown
+const shutdown = () => {
+  console.log('Received shutdown signal, closing server...');
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 (async () => {
   try {
@@ -64,7 +68,16 @@ app.use((req, res, next) => {
       await setupVite(app, server);
       console.log('Vite development server setup completed');
     } else {
-      serveStatic(app);
+      // In production, serve from dist/public
+      const distPath = path.resolve(process.cwd(), "dist", "public");
+      app.use(express.static(distPath));
+
+      // Serve index.html for all non-API routes (SPA support)
+      app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) return next();
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+
       console.log('Static file serving setup completed');
     }
 
@@ -72,7 +85,7 @@ app.use((req, res, next) => {
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', err);
       const status = err.status || err.statusCode || 500;
-      const message = process.env.NODE_ENV === "production" 
+      const message = process.env.NODE_ENV === "production"
         ? "Internal Server Error" // Don't expose error details in production
         : err.message || "Internal Server Error";
       res.status(status).json({ message });
@@ -84,8 +97,8 @@ app.use((req, res, next) => {
     });
 
     // Start server
-    const PORT = process.env.PORT || 5000;
-    server.listen(PORT, "0.0.0.0", () => {
+    const PORT = process.env.PORT || 3000; // Use Replit's PORT env var
+    server.listen(PORT, () => {
       console.log(`Server started on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
