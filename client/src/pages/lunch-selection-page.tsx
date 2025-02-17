@@ -53,14 +53,14 @@ export default function LunchSelectionPage() {
     onSuccess: () => {
       // Invalidate queries for both current and next month if selections span months
       const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
-      [...months].forEach(monthKey => {
+      for (const monthKey of months) {
         const [year, month] = monthKey.split('/');
         queryClient.invalidateQueries({ 
           queryKey: [
             `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
           ],
         });
-      });
+      }
       // Also invalidate the base lunch selections query
       queryClient.invalidateQueries({ 
         queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
@@ -68,6 +68,13 @@ export default function LunchSelectionPage() {
       toast({
         title: "Success",
         description: "Lunch selections saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save lunch selections",
+        variant: "destructive",
       });
     },
   });
@@ -85,17 +92,28 @@ export default function LunchSelectionPage() {
     onSuccess: () => {
       // Invalidate queries for both current and next month if selections span months
       const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
-      [...months].forEach(monthKey => {
+      for (const monthKey of months) {
         const [year, month] = monthKey.split('/');
         queryClient.invalidateQueries({ 
           queryKey: [
             `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
           ],
         });
+      }
+      // Also invalidate the base lunch selections query
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
       });
       toast({
         title: "Success",
         description: "Lunch selection updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update lunch selection",
+        variant: "destructive",
       });
     },
   });
@@ -122,27 +140,27 @@ export default function LunchSelectionPage() {
 
   const handleSaveSelections = async (menuItemId: number) => {
     try {
-      await Promise.all(
-        selectedDates.map(async (date) => {
-          const existingSelection = getSelectionForDate(date);
-          if (existingSelection) {
-            // Update existing selection
-            await updateSelectionMutation.mutate({
-              id: existingSelection.id,
-              menuItemId,
-            });
-          } else {
-            // Create new selection
-            await createSelectionMutation.mutate({ date, menuItemId });
-          }
-        })
-      );
+      const promises = selectedDates.map(async (date) => {
+        const existingSelection = getSelectionForDate(date);
+        if (existingSelection) {
+          // Update existing selection
+          return updateSelectionMutation.mutateAsync({
+            id: existingSelection.id,
+            menuItemId,
+          });
+        } else {
+          // Create new selection
+          return createSelectionMutation.mutateAsync({ date, menuItemId });
+        }
+      });
+
+      await Promise.all(promises);
       setSelectedDates([]);
       setStep("dates");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to save lunch selections",
+        description: error.message || "Failed to save lunch selections",
         variant: "destructive",
       });
     }
