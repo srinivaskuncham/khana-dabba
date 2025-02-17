@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -6,6 +6,8 @@ import { insertKidSchema, insertUserSchema, insertLunchSelectionSchema } from "@
 import { ZodError } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  setupAuth(app);
+
   // Monthly Menu endpoints
   app.get("/api/menu/:year/:month", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
@@ -245,6 +247,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const holidays = await storage.getHolidays(startDate, endDate);
     res.json(holidays);
+  });
+
+  // Error handling middleware
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Error handling request:', err);
+    res.status(500).json({ message: "Internal Server Error" });
   });
 
   const httpServer = createServer(app);
