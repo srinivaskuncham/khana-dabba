@@ -455,9 +455,9 @@ export default function LunchSelectionPage() {
                         variant="destructive"
                         className="flex-1"
                         onClick={() => handleClearSelections()}
-                        disabled={selectedDates.some(date => !getSelectionForDate(date))}
+                        disabled={selectedDates.every(date => !getSelectionForDate(date))}
                       >
-                        Clear Selections
+                        Reset Choices
                       </Button>
                     </div>
                   </div>
