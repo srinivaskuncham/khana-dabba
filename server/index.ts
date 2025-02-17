@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
-import { setupVite,  log } from "./vite";
+import { setupVite, log } from "./vite";
 import { setupAuth } from "./auth";
 import path from "path";
 
@@ -59,24 +59,33 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     console.log('Routes registered');
 
-    // In development, use Vite's dev server
-    if (process.env.NODE_ENV === "development") {
-      await setupVite(app, server);
-      console.log('Vite development server setup completed');
-    } else {
-      // In production, serve static files from dist/public
-      const distPath = path.join(process.cwd(), "dist", "public");
-      app.use(express.static(distPath));
+    // Static file serving and client routing setup
+    const distPath = path.join(process.cwd(), "dist", "public");
 
-      // Serve index.html for client-side routing
-      app.get('*', (req, res) => {
-        // Skip API routes
-        if (req.path.startsWith('/api')) return;
-        res.sendFile(path.join(distPath, 'index.html'));
+    // Serve static files
+    app.use(express.static(distPath, {
+      index: false // Don't serve index.html automatically
+    }));
+
+    // API routes are handled by registerRoutes
+    // For all other routes, serve the React app
+    app.get('*', (req, res, next) => {
+      // Skip API routes
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+
+      // Log the request for debugging
+      console.log('Serving index.html for path:', req.path);
+
+      const indexPath = path.join(distPath, 'index.html');
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error('Error serving index.html:', err);
+          res.status(500).send('Error serving application');
+        }
       });
-
-      console.log('Static file serving setup completed from:', distPath);
-    }
+    });
 
     // Error handling
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -90,6 +99,7 @@ app.use((req, res, next) => {
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
+      console.log(`Serving static files from: ${distPath}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
