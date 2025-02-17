@@ -15,11 +15,6 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
-  updateProfileMutation: UseMutationResult<
-    SelectUser,
-    Error,
-    Partial<Omit<InsertUser, "username" | "password">>
-  >;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -43,6 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${user.name}!`,
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -60,6 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Registration successful",
+        description: "Welcome to Khana Dabba!",
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -76,31 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
     },
     onError: (error: Error) => {
       toast({
         title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: Partial<Omit<InsertUser, "username" | "password">>) => {
-      const res = await apiRequest("PUT", "/api/user", data);
-      return await res.json();
-    },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update failed",
         description: error.message,
         variant: "destructive",
       });
@@ -116,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        updateProfileMutation,
       }}
     >
       {children}
