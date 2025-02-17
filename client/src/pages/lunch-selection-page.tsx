@@ -63,21 +63,47 @@ export default function LunchSelectionPage() {
     },
   });
 
-  const vegOptions = menuItems.filter((item) => item.isVegetarian);
-  const nonVegOptions = menuItems.filter((item) => !item.isVegetarian);
-
-  const tomorrow = addDays(new Date(), 1);
-
-  const handleDateSelect = (dates: Date[] | undefined) => {
-    setSelectedDates(dates || []);
-  };
+  const updateSelectionMutation = useMutation({
+    mutationFn: async ({ id, menuItemId }: { id: number; menuItemId: number }) => {
+      if (!selectedKidId) throw new Error("No kid selected");
+      const res = await apiRequest(
+        "PUT",
+        `/api/kids/${selectedKidId}/lunch-selections/${id}`,
+        { menuItemId }
+      );
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [
+          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+            currentMonth.getMonth() + 1
+          }`,
+        ],
+      });
+      toast({
+        title: "Success",
+        description: "Lunch selection updated successfully",
+      });
+    },
+  });
 
   const handleSaveSelections = async (menuItemId: number) => {
     try {
       await Promise.all(
-        selectedDates.map((date) =>
-          createSelectionMutation.mutate({ date, menuItemId })
-        )
+        selectedDates.map(async (date) => {
+          const existingSelection = getSelectionForDate(date);
+          if (existingSelection) {
+            // Update existing selection
+            await updateSelectionMutation.mutate({
+              id: existingSelection.id,
+              menuItemId,
+            });
+          } else {
+            // Create new selection
+            await createSelectionMutation.mutate({ date, menuItemId });
+          }
+        })
       );
       setSelectedDates([]);
       setStep("dates");
@@ -90,16 +116,33 @@ export default function LunchSelectionPage() {
     }
   };
 
-  const disabledDays = {
-    before: tomorrow,
-    after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
-    filter: (date: Date) => isSunday(date),
+  const vegOptions = menuItems.filter((item) => item.isVegetarian);
+  const nonVegOptions = menuItems.filter((item) => !item.isVegetarian);
+
+  const tomorrow = addDays(new Date(), 1);
+
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    setSelectedDates(dates || []);
   };
 
   const getSelectionForDate = (date: Date) => {
     return existingSelections.find((selection) =>
       isSameDay(new Date(selection.date), date)
     );
+  };
+
+  // Add CSS classes for veg and non-veg selections
+  const getSelectionClass = (date: Date) => {
+    const selection = getSelectionForDate(date);
+    if (!selection) return "";
+    const menuItem = menuItems.find(item => item.id === selection.menuItemId);
+    return menuItem?.isVegetarian ? "veg-selected" : "non-veg-selected";
+  };
+
+  const disabledDays = {
+    before: tomorrow,
+    after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
+    filter: (date: Date) => isSunday(date),
   };
 
   return (
@@ -175,12 +218,19 @@ export default function LunchSelectionPage() {
                         .rdp-day_selected:hover {
                           background-color: hsl(var(--primary));
                         }
-                        .lunch-selected {
+                        .veg-selected {
                           background-color: hsl(142.1 76.2% 36.3%);
                           color: white;
                         }
-                        .lunch-selected:hover {
+                        .veg-selected:hover {
                           background-color: hsl(142.1 76.2% 36.3%);
+                        }
+                        .non-veg-selected {
+                          background-color: hsl(0 72.2% 50.6%);
+                          color: white;
+                        }
+                        .non-veg-selected:hover {
+                          background-color: hsl(0 72.2% 50.6%);
                         }
                         .rdp-head_cell {
                           font-weight: 500;
@@ -199,11 +249,17 @@ export default function LunchSelectionPage() {
                       disabled={disabledDays}
                       modifiers={{
                         selected: selectedDates,
-                        lunchSelected: existingSelections.map(s => new Date(s.date)),
+                        vegSelected: existingSelections
+                          .filter(s => menuItems.find(m => m.id === s.menuItemId)?.isVegetarian)
+                          .map(s => new Date(s.date)),
+                        nonVegSelected: existingSelections
+                          .filter(s => !menuItems.find(m => m.id === s.menuItemId)?.isVegetarian)
+                          .map(s => new Date(s.date)),
                       }}
                       modifiersClassNames={{
                         selected: "rdp-day_selected",
-                        lunchSelected: "lunch-selected",
+                        vegSelected: "veg-selected",
+                        nonVegSelected: "non-veg-selected",
                       }}
                       className="border rounded-lg p-4"
                     />
