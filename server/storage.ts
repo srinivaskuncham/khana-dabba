@@ -1,4 +1,4 @@
-import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory, type Holiday, type InsertHoliday } from "@shared/schema";
+import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, holidays, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory, type Holiday, type InsertHoliday } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
