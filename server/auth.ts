@@ -18,15 +18,10 @@ const SALT_LENGTH = 16;
 const KEY_LENGTH = 64;
 
 async function hashPassword(password: string) {
-  try {
-    const salt = randomBytes(SALT_LENGTH);
-    const hash = (await scryptAsync(password, salt, KEY_LENGTH)) as Buffer;
-    const result = Buffer.concat([hash, salt]).toString('hex');
-    return result;
-  } catch (error) {
-    console.error('Error hashing password:', error);
-    throw error;
-  }
+  const salt = randomBytes(SALT_LENGTH);
+  const hash = (await scryptAsync(password, salt, KEY_LENGTH)) as Buffer;
+  const result = Buffer.concat([hash, salt]).toString('hex');
+  return result;
 }
 
 async function comparePasswords(supplied: string, stored: string) {
@@ -49,8 +44,8 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      secure: false,
-      maxAge: 24 * 60 * 60 * 1000,
+      secure: false, // Set to true if using HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
     }
   };
@@ -85,7 +80,7 @@ export function setupAuth(app: Express) {
         console.error('Login error:', error);
         return done(error);
       }
-    })
+    }),
   );
 
   passport.serializeUser((user, done) => {
