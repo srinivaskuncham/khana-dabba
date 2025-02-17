@@ -3,7 +3,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
 import {
   Text,
@@ -21,13 +20,26 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Kid, MonthlyMenuItem, LunchSelection, Holiday } from '../../shared/schema';
 import { format, isSunday, isAfter, addDays, isSameDay } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { API_URL } from '../lib/config';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { queryClient } from '../lib/queryClient';
 
-export default function LunchSelectionScreen({ navigation }) {
+type RootStackParamList = {
+  Auth: undefined;
+  Home: undefined;
+  Profile: undefined;
+  Kids: undefined;
+  LunchSelection: { kidId?: number };
+};
+
+type Props = NativeStackScreenProps<RootStackParamList, 'LunchSelection'>;
+
+export default function LunchSelectionScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const theme = useTheme();
   const [selectedDates, setSelectedDates] = useState([]);
   const [step, setStep] = useState('dates');
-  const [selectedKidId, setSelectedKidId] = useState(null);
+  const [selectedKidId, setSelectedKidId] = useState(route.params?.kidId);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: kids = [] } = useQuery({
@@ -56,7 +68,7 @@ export default function LunchSelectionScreen({ navigation }) {
     enabled: true,
   });
 
-  const createSelectionMutation = useMutation({
+  const createSelectionMutation = useMutation<LunchSelection, Error, { date: Date; menuItemId: number }>({
     mutationFn: async (data) => {
       if (!selectedKidId) throw new Error('No kid selected');
       const res = await fetch(`${API_URL}/api/kids/${selectedKidId}/lunch-selections`, {
@@ -65,13 +77,22 @@ export default function LunchSelectionScreen({ navigation }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...data,
           date: format(data.date, 'yyyy-MM-dd'),
+          menuItemId: data.menuItemId,
         }),
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Failed to create selection');
       return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+            currentMonth.getMonth() + 1
+          }`,
+        ],
+      });
     },
   });
 
@@ -186,6 +207,11 @@ export default function LunchSelectionScreen({ navigation }) {
     setSelectedDates([]);
     setStep('dates');
   }, [selectedKidId]);
+
+  const handleClearSelections = () => {
+    //Implementation for clearing selections
+  };
+
 
   return (
     <View style={styles.container}>

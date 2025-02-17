@@ -3,8 +3,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Image,
-  Dimensions,
 } from 'react-native';
 import {
   Text,
@@ -17,13 +15,22 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { MonthlyMenuItem } from '../../shared/schema';
-import { useNavigation } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function HomeScreen() {
+type RootStackParamList = {
+  Auth: undefined;
+  Home: undefined;
+  Profile: undefined;
+  Kids: undefined;
+  LunchSelection: { kidId?: number };
+};
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+export default function HomeScreen({ navigation }: Props) {
   const { user, logoutMutation } = useAuth();
   const theme = useTheme();
-  const navigation = useNavigation();
   const [menuType, setMenuType] = React.useState('veg');
 
   const { data: menuItems = [] } = useQuery<MonthlyMenuItem[]>({
@@ -45,14 +52,13 @@ export default function HomeScreen() {
     }
   };
 
-  const openDrawer = () => {
-    navigation.openDrawer();
-  };
-
   return (
     <View style={styles.container}>
       <Appbar.Header>
-        <Appbar.Action icon="menu" onPress={openDrawer} />
+        <Appbar.Action 
+          icon="menu" 
+          onPress={() => navigation.navigate('Profile')} 
+        />
         <Appbar.Content title="Khana Dabba" />
       </Appbar.Header>
 
