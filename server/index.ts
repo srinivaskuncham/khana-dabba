@@ -58,8 +58,8 @@ app.use((req, res, next) => {
 
     // Start server
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running at http://0.0.0.0:${PORT}`);
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
   } catch (error) {
