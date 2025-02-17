@@ -14,15 +14,13 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP in development
 }));
 
-// Configure CORS for all origins in development
-const corsOptions = {
-  origin: true, // Allow all origins
-  credentials: true, // Allow credentials
+// Configure CORS
+app.use(cors({
+  credentials: true, // Allow credentials (cookies)
+  origin: true, // Allow all origins in development
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-app.use(cors(corsOptions));
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -72,7 +70,6 @@ process.on('SIGINT', shutdown);
       await setupVite(app, server);
       console.log('Vite development server setup completed');
     } else {
-      // In production, serve from dist/public
       const distPath = path.resolve(process.cwd(), "dist", "public");
       console.log('Production static files path:', distPath);
 
