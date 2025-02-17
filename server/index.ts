@@ -29,14 +29,9 @@ let isInitialized = false;
 
     console.log('Starting server initialization...');
 
-    // Setup authentication
+    // Setup authentication first
     setupAuth(app);
     console.log('Auth setup completed');
-
-    // Basic health check endpoint
-    app.get('/health', (req, res) => {
-      res.status(200).json({ status: 'ok' });
-    });
 
     // Register API routes
     const server = await registerRoutes(app);
