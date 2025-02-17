@@ -1,4 +1,4 @@
-import { users, menuItems, type User, type MenuItem, type InsertUser } from "@shared/schema";
+import { users, menuItems, kids, type User, type MenuItem, type InsertUser, type Kid, type InsertKid } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -13,6 +13,12 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getMenuItems(): Promise<MenuItem[]>;
   getMenuItemsByCategory(category: string): Promise<MenuItem[]>;
+  // New methods for kids
+  getKidsByUserId(userId: number): Promise<Kid[]>;
+  getKid(kidId: number): Promise<Kid | undefined>;
+  createKid(kid: InsertKid): Promise<Kid>;
+  updateKid(kidId: number, kid: Partial<InsertKid>): Promise<Kid | undefined>;
+  deleteKid(kidId: number): Promise<boolean>;
   sessionStore: session.Store;
 }
 
@@ -51,6 +57,35 @@ export class DatabaseStorage implements IStorage {
       .from(menuItems)
       .where(eq(menuItems.category, category))
       .where(eq(menuItems.isAvailable, true));
+  }
+
+  // Kids related methods
+  async getKidsByUserId(userId: number): Promise<Kid[]> {
+    return await db.select().from(kids).where(eq(kids.userId, userId));
+  }
+
+  async getKid(kidId: number): Promise<Kid | undefined> {
+    const [kid] = await db.select().from(kids).where(eq(kids.id, kidId));
+    return kid;
+  }
+
+  async createKid(insertKid: InsertKid): Promise<Kid> {
+    const [kid] = await db.insert(kids).values(insertKid).returning();
+    return kid;
+  }
+
+  async updateKid(kidId: number, updateData: Partial<InsertKid>): Promise<Kid | undefined> {
+    const [updated] = await db
+      .update(kids)
+      .set(updateData)
+      .where(eq(kids.id, kidId))
+      .returning();
+    return updated;
+  }
+
+  async deleteKid(kidId: number): Promise<boolean> {
+    const [deleted] = await db.delete(kids).where(eq(kids.id, kidId)).returning();
+    return !!deleted;
   }
 }
 

@@ -1,0 +1,194 @@
+import { useAuth } from "@/hooks/use-auth";
+import { Kid, insertKidSchema } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Plus, Pencil, Trash2 } from "lucide-react";
+import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+
+export default function KidsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [editingKid, setEditingKid] = useState<Kid | null>(null);
+
+  const { data: kids = [], isLoading } = useQuery<Kid[]>({
+    queryKey: ["/api/kids"],
+  });
+
+  const form = useForm({
+    resolver: zodResolver(insertKidSchema.omit({ userId: true })),
+    defaultValues: {
+      name: "",
+      grade: "",
+      school: "",
+      rollNumber: "",
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: Omit<Kid, "id" | "userId">) => {
+      const res = await apiRequest("POST", "/api/kids", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kids"] });
+      form.reset();
+      toast({
+        title: "Success",
+        description: "Kid profile created successfully",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Kid> }) => {
+      const res = await apiRequest("PUT", `/api/kids/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kids"] });
+      setEditingKid(null);
+      toast({
+        title: "Success",
+        description: "Kid profile updated successfully",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/kids/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/kids"] });
+      toast({
+        title: "Success",
+        description: "Kid profile deleted successfully",
+      });
+    },
+  });
+
+  const onSubmit = (data: any) => {
+    if (editingKid) {
+      updateMutation.mutate({ id: editingKid.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="container mx-auto">
+        <Link href="/">
+          <Button variant="ghost" className="mb-8 flex gap-2">
+            <ArrowLeft size={18} />
+            Back to Menu
+          </Button>
+        </Link>
+
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Kids Profiles</h1>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="flex gap-2">
+                <Plus size={18} />
+                Add Kid
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingKid ? "Edit Kid Profile" : "Add New Kid"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" {...form.register("name")} />
+                </div>
+                <div>
+                  <Label htmlFor="grade">Grade</Label>
+                  <Input id="grade" {...form.register("grade")} />
+                </div>
+                <div>
+                  <Label htmlFor="school">School</Label>
+                  <Input id="school" {...form.register("school")} />
+                </div>
+                <div>
+                  <Label htmlFor="rollNumber">Roll Number</Label>
+                  <Input id="rollNumber" {...form.register("rollNumber")} />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  {editingKid ? "Update" : "Add"} Kid
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {kids.map((kid) => (
+            <Card key={kid.id}>
+              <CardHeader>
+                <CardTitle className="flex justify-between items-center">
+                  <span>{kid.name}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingKid(kid);
+                        form.reset(kid);
+                      }}
+                    >
+                      <Pencil size={18} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteMutation.mutate(kid.id)}
+                    >
+                      <Trash2 size={18} />
+                    </Button>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p>
+                    <span className="font-medium">Grade:</span> {kid.grade}
+                  </p>
+                  <p>
+                    <span className="font-medium">School:</span> {kid.school}
+                  </p>
+                  <p>
+                    <span className="font-medium">Roll Number:</span>{" "}
+                    {kid.rollNumber}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

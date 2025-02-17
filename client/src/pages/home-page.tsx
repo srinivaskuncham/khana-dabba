@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, UsersRound } from "lucide-react";
 
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
@@ -21,6 +21,12 @@ export default function HomePage() {
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white">LunchDabba.in</h1>
           <div className="flex gap-4">
+            <Link href="/kids">
+              <Button variant="secondary" className="flex gap-2">
+                <UsersRound size={18} />
+                Kids
+              </Button>
+            </Link>
             <Link href="/profile">
               <Button variant="secondary" className="flex gap-2">
                 <User size={18} />
