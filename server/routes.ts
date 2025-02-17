@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -247,12 +247,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const holidays = await storage.getHolidays(startDate, endDate);
     res.json(holidays);
-  });
-
-  // Error handling middleware
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Error handling request:', err);
-    res.status(500).json({ message: "Internal Server Error" });
   });
 
   const httpServer = createServer(app);
