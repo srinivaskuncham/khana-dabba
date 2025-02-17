@@ -204,11 +204,16 @@ export default function LunchSelectionPage() {
           }
         })
       );
+      setSelectedDates([]);
       setStep("dates");
+      toast({
+        title: "Success",
+        description: "Lunch selections reset successfully",
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to clear lunch selections",
+        description: "Failed to reset lunch selections",
         variant: "destructive",
       });
     }
