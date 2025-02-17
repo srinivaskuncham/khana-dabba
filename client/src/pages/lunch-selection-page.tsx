@@ -157,7 +157,14 @@ export default function LunchSelectionPage() {
   const disabledDays = {
     before: tomorrow,
     after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
-    dates: holidays.map(h => new Date(h.date))
+    dates: [
+      ...holidays.map(h => new Date(h.date)),
+      // Add all Sundays in the current month
+      ...Array.from({ length: 31 }, (_, i) => {
+        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
+        return date.getMonth() === currentMonth.getMonth() && isSunday(date) ? date : null;
+      }).filter(Boolean)
+    ]
   };
 
   return (
@@ -297,10 +304,16 @@ export default function LunchSelectionPage() {
                           opacity: 0.5;
                           cursor: not-allowed;
                         }
-                        .rdp-day_disabled.holiday {
-                          background-color: hsl(var(--destructive));
-                          color: white;
-                          opacity: 0.7;
+                        .rdp-day_disabled.holiday,
+                        .holiday {
+                          background-color: hsl(var(--destructive)) !important;
+                          color: white !important;
+                          opacity: 0.8;
+                          font-weight: 500;
+                        }
+                        .holiday:hover:not([disabled]) {
+                          background-color: hsl(var(--destructive)) !important;
+                          color: white !important;
                         }
                         .rdp-head_cell {
                           font-weight: 500;
