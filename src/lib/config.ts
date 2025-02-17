@@ -4,3 +4,8 @@ export const API_URL = ''; // The empty string will make it use the same origin 
 // Other configuration constants
 export const APP_NAME = 'Khana Dabba';
 export const APP_VERSION = '1.0.0';
+
+// Connection retry configuration
+export const MAX_RETRIES = 3;
+export const RETRY_DELAY = 1000; // milliseconds
+export const CONNECTION_TIMEOUT = 30000; // 30 seconds
