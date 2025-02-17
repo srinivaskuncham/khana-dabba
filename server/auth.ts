@@ -72,9 +72,19 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        console.log('Found user:', { username, userId: user.id });
+        console.log('Found user:', { 
+          username, 
+          userId: user.id,
+          passwordLength: user.password.length 
+        });
+
         const isValid = await comparePasswords(password, user.password);
-        console.log('Password validation:', { username, isValid });
+        console.log('Password validation:', { 
+          username, 
+          isValid,
+          suppliedPasswordLength: password.length,
+          storedPasswordLength: user.password.length
+        });
 
         if (!isValid) {
           console.log('Invalid password for user:', { username });
