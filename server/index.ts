@@ -11,6 +11,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+  console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${path}`);
+
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -21,13 +23,7 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
-    }
+    console.log(`[${new Date().toISOString()}] Response sent: ${req.method} ${path} ${res.statusCode} in ${duration}ms`);
   });
 
   next();
@@ -37,9 +33,11 @@ app.use((req, res, next) => {
   try {
     // Setup authentication first
     setupAuth(app);
+    console.log('Auth setup completed');
 
     // Then register other routes
     const server = await registerRoutes(app);
+    console.log('Routes registered');
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -52,13 +50,16 @@ app.use((req, res, next) => {
     // Setup Vite or static serving
     if (app.get("env") === "development") {
       await setupVite(app, server);
+      console.log('Vite development server setup completed');
     } else {
       serveStatic(app);
+      console.log('Static file serving setup completed');
     }
 
     // Start server
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running at http://0.0.0.0:${PORT}`);
       log(`Server running at http://0.0.0.0:${PORT}`);
     });
   } catch (error) {
