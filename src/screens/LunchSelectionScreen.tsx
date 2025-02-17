@@ -9,7 +9,6 @@ import {
   Card,
   Button,
   Avatar,
-  Divider,
   useTheme,
   SegmentedButtons,
   Appbar,
@@ -17,9 +16,8 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Kid, MonthlyMenuItem, LunchSelection, Holiday } from '../../shared/schema';
-import { format, isSunday, isAfter, addDays, isSameDay } from 'date-fns';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MonthlyMenuItem, LunchSelection, Holiday } from '../../shared/schema';
+import { format, isSameDay, addDays } from 'date-fns';
 import { API_URL } from '../lib/config';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { queryClient } from '../lib/queryClient';
@@ -34,10 +32,20 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LunchSelection'>;
 
+type CreateSelectionData = {
+  date: Date;
+  menuItemId: number;
+};
+
+type UpdateSelectionData = {
+  id: number;
+  menuItemId: number;
+};
+
 export default function LunchSelectionScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const theme = useTheme();
-  const [selectedDates, setSelectedDates] = useState([]);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [step, setStep] = useState('dates');
   const [selectedKidId, setSelectedKidId] = useState(route.params?.kidId);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -46,13 +54,13 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     queryKey: ['/api/kids'],
   });
 
-  const { data: menuItems = [] } = useQuery({
+  const { data: menuItems = [] } = useQuery<MonthlyMenuItem[]>({
     queryKey: [
       `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
   });
 
-  const { data: existingSelections = [] } = useQuery({
+  const { data: existingSelections = [] } = useQuery<LunchSelection[]>({
     queryKey: [
       `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
         currentMonth.getMonth() + 1
@@ -61,15 +69,14 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     enabled: !!selectedKidId,
   });
 
-  const { data: holidays = [] } = useQuery({
+  const { data: holidays = [] } = useQuery<Holiday[]>({
     queryKey: [
       `/api/holidays/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
-    enabled: true,
   });
 
-  const createSelectionMutation = useMutation<LunchSelection, Error, { date: Date; menuItemId: number }>({
-    mutationFn: async (data) => {
+  const createSelectionMutation = useMutation<LunchSelection, Error, CreateSelectionData>({
+    mutationFn: async ({ date, menuItemId }) => {
       if (!selectedKidId) throw new Error('No kid selected');
       const res = await fetch(`${API_URL}/api/kids/${selectedKidId}/lunch-selections`, {
         method: 'POST',
@@ -77,13 +84,21 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          date: format(data.date, 'yyyy-MM-dd'),
-          menuItemId: data.menuItemId,
+          date: format(date, 'yyyy-MM-dd'),
+          menuItemId,
         }),
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to create selection');
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Failed to create selection');
+      }
+
       return res.json();
+    },
+    onError: (error) => {
+      console.error('Create selection error:', error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -96,7 +111,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     },
   });
 
-  const updateSelectionMutation = useMutation({
+  const updateSelectionMutation = useMutation<LunchSelection, Error, UpdateSelectionData>({
     mutationFn: async ({ id, menuItemId }) => {
       if (!selectedKidId) throw new Error('No kid selected');
       const res = await fetch(
@@ -110,12 +125,29 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
           credentials: 'include',
         },
       );
-      if (!res.ok) throw new Error('Failed to update selection');
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Failed to update selection');
+      }
+
       return res.json();
+    },
+    onError: (error) => {
+      console.error('Update selection error:', error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+            currentMonth.getMonth() + 1
+          }`,
+        ],
+      });
     },
   });
 
-  const clearSelectionMutation = useMutation({
+  const clearSelectionMutation = useMutation<void, Error, { id: number }>({
     mutationFn: async ({ id }) => {
       if (!selectedKidId) throw new Error('No kid selected');
       const res = await fetch(
@@ -125,11 +157,27 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
           credentials: 'include',
         },
       );
-      if (!res.ok) throw new Error('Failed to delete selection');
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Failed to delete selection');
+      }
+    },
+    onError: (error) => {
+      console.error('Clear selection error:', error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+            currentMonth.getMonth() + 1
+          }`,
+        ],
+      });
     },
   });
 
-  const handleSaveSelections = async (menuItemId) => {
+  const handleSaveSelections = async (menuItemId: number) => {
     try {
       for (const date of selectedDates) {
         const existingSelection = getSelectionForDate(date);
@@ -153,17 +201,33 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     }
   };
 
+  const handleClearSelections = async () => {
+    try {
+      for (const date of selectedDates) {
+        const existingSelection = getSelectionForDate(date);
+        if (existingSelection) {
+          await clearSelectionMutation.mutateAsync({
+            id: existingSelection.id,
+          });
+        }
+      }
+      setSelectedDates([]);
+      setStep('dates');
+    } catch (error) {
+      console.error('Error clearing selections:', error);
+    }
+  };
+
   const vegOptions = menuItems.filter((item) => item.isVegetarian);
   const nonVegOptions = menuItems.filter((item) => !item.isVegetarian);
   const tomorrow = addDays(new Date(), 1);
 
-  const getSelectionForDate = (date) => {
+  const getSelectionForDate = (date: Date) => {
     return existingSelections.find((selection) =>
       isSameDay(new Date(selection.date), date),
     );
   };
 
-  // Format dates for the calendar
   const markedDates = {
     ...selectedDates.reduce((acc, date) => {
       acc[format(date, 'yyyy-MM-dd')] = {
@@ -207,10 +271,6 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     setSelectedDates([]);
     setStep('dates');
   }, [selectedKidId]);
-
-  const handleClearSelections = () => {
-    //Implementation for clearing selections
-  };
 
 
   return (
