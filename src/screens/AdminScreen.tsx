@@ -16,13 +16,12 @@ import {
   HelperText,
   Portal,
   Dialog,
+  RadioButton,
 } from 'react-native-paper';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { MonthlyMenuItem, insertMonthlyMenuItemSchema } from '../../shared/schema';
 import { useAuth } from '../hooks/useAuth';
 import { queryClient } from '../lib/queryClient';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import * as ImagePicker from 'expo-image-picker';
 
 export default function AdminScreen({ navigation }) {
   const { user } = useAuth();
@@ -38,8 +37,7 @@ export default function AdminScreen({ navigation }) {
     imageUrl: '',
     month: new Date(),
   });
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const { data: menuItems = [], isLoading } = useQuery<MonthlyMenuItem[]>({
     queryKey: ['/api/admin/menu-items'],
@@ -47,33 +45,6 @@ export default function AdminScreen({ navigation }) {
 
   const createItemMutation = useMutation({
     mutationFn: async (item: typeof newItem) => {
-      // First upload the image if there's a new one
-      let imageUrl = item.imageUrl;
-      if (imagePreview) {
-        const formData = new FormData();
-        formData.append('image', {
-          uri: imagePreview,
-          type: 'image/jpeg',
-          name: 'upload.jpg',
-        });
-
-        const uploadResponse = await fetch('/api/admin/upload', {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          credentials: 'include',
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload image');
-        }
-
-        const { url } = await uploadResponse.json();
-        imageUrl = url;
-      }
-
       const response = await fetch('/api/admin/menu-items', {
         method: 'POST',
         headers: {
@@ -81,7 +52,6 @@ export default function AdminScreen({ navigation }) {
         },
         body: JSON.stringify({
           ...item,
-          imageUrl,
           calories: parseInt(item.calories),
           price: parseInt(item.price),
         }),
@@ -107,7 +77,6 @@ export default function AdminScreen({ navigation }) {
         imageUrl: '',
         month: new Date(),
       });
-      setImagePreview(null);
     },
   });
 
@@ -132,19 +101,6 @@ export default function AdminScreen({ navigation }) {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/menu-items'] });
     },
   });
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImagePreview(result.assets[0].uri);
-    }
-  };
 
   const handleSubmit = () => {
     createItemMutation.mutate(newItem);
@@ -207,6 +163,13 @@ export default function AdminScreen({ navigation }) {
               keyboardType="numeric"
               style={styles.input}
             />
+            <TextInput
+              mode="outlined"
+              label="Image URL"
+              value={newItem.imageUrl}
+              onChangeText={(text) => setNewItem({ ...newItem, imageUrl: text })}
+              style={styles.input}
+            />
 
             <View style={styles.switchContainer}>
               <Text>Vegetarian</Text>
@@ -230,28 +193,11 @@ export default function AdminScreen({ navigation }) {
 
             <Button
               mode="outlined"
-              onPress={() => setShowDatePicker(true)}
+              onPress={() => setShowMonthPicker(true)}
               style={styles.dateButton}
             >
               Select Month: {newItem.month.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
             </Button>
-
-            <Button
-              mode="outlined"
-              onPress={pickImage}
-              style={styles.imageButton}
-              icon="camera"
-            >
-              Upload Image
-            </Button>
-
-            {imagePreview && (
-              <Image
-                source={{ uri: imagePreview }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-            )}
 
             <Button
               mode="contained"
@@ -311,19 +257,33 @@ export default function AdminScreen({ navigation }) {
         </Card>
       </ScrollView>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={newItem.month}
-          mode="date"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) {
-              setNewItem({ ...newItem, month: selectedDate });
-            }
-          }}
-        />
-      )}
+      <Portal>
+        <Dialog visible={showMonthPicker} onDismiss={() => setShowMonthPicker(false)}>
+          <Dialog.Title>Select Month</Dialog.Title>
+          <Dialog.Content>
+            <RadioButton.Group
+              onValueChange={(value) => {
+                const date = new Date(value);
+                setNewItem({ ...newItem, month: date });
+                setShowMonthPicker(false);
+              }}
+              value={newItem.month.toISOString()}
+            >
+              {Array.from({ length: 12 }, (_, i) => {
+                const date = new Date();
+                date.setMonth(i);
+                return (
+                  <RadioButton.Item
+                    key={i}
+                    label={date.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
+                    value={date.toISOString()}
+                  />
+                );
+              })}
+            </RadioButton.Group>
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -351,15 +311,6 @@ const styles = StyleSheet.create({
   },
   dateButton: {
     marginBottom: 16,
-  },
-  imageButton: {
-    marginBottom: 16,
-  },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    marginBottom: 16,
-    borderRadius: 8,
   },
   submitButton: {
     marginTop: 8,
