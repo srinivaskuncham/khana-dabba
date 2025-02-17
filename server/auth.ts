@@ -14,14 +14,15 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+const SALT_LENGTH = 16;
+const KEY_LENGTH = 64;
 
 async function hashPassword(password: string) {
   try {
-    const salt = randomBytes(16).toString("hex");
-    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-    const hashedPassword = buf.toString("hex");
-    console.log('Hashing password:', { salt, hashedLength: hashedPassword.length });
-    return `${hashedPassword}.${salt}`;
+    const salt = randomBytes(SALT_LENGTH);
+    const hash = (await scryptAsync(password, salt, KEY_LENGTH)) as Buffer;
+    const result = Buffer.concat([hash, salt]).toString('hex');
+    return result;
   } catch (error) {
     console.error('Error hashing password:', error);
     throw error;
@@ -30,23 +31,11 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
-    const [hashedPassword, salt] = stored.split(".");
-    console.log('Password comparison:', {
-      hashedLength: hashedPassword.length,
-      saltLength: salt.length
-    });
-
-    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    const suppliedHashed = suppliedBuf.toString("hex");
-    const storedBuf = Buffer.from(hashedPassword, "hex");
-
-    console.log('Comparing hashes:', {
-      suppliedLength: suppliedHashed.length,
-      storedLength: hashedPassword.length,
-      match: suppliedHashed === hashedPassword
-    });
-
-    return timingSafeEqual(suppliedBuf, storedBuf);
+    const buf = Buffer.from(stored, 'hex');
+    const hash = buf.subarray(0, KEY_LENGTH);
+    const salt = buf.subarray(KEY_LENGTH);
+    const suppliedHash = await scryptAsync(supplied, salt, KEY_LENGTH) as Buffer;
+    return timingSafeEqual(hash, suppliedHash);
   } catch (error) {
     console.error('Error comparing passwords:', error);
     return false;
@@ -128,6 +117,8 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await hashPassword(req.body.password);
+      console.log('Created hash for new user:', { username: req.body.username, hashLength: hashedPassword.length });
+
       const user = await storage.createUser({
         ...req.body,
         password: hashedPassword,
