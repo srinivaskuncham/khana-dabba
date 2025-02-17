@@ -27,9 +27,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-primary p-4">
+      <nav className="bg-primary p-4 sticky top-0 z-10">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-white">Khana Dabba</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Khana Dabba</h1>
           <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
               <AnimatedHamburger isOpen={isOpen} onClick={() => setIsOpen(!isOpen)} />
@@ -53,7 +53,7 @@ export default function HomePage() {
                   Profile
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="cursor-pointer"
                 onClick={() => logoutMutation.mutate()}
               >
@@ -65,37 +65,39 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <main className="container mx-auto py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">
+      <main className="container mx-auto py-6 px-4">
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Welcome back, {user?.name}!
           </h2>
           <p className="text-gray-600">Here are this month's lunch options</p>
         </div>
 
-        <Tabs defaultValue="veg">
-          <TabsList>
-            <TabsTrigger value="veg">Vegetarian</TabsTrigger>
-            <TabsTrigger value="non-veg">Non-Vegetarian</TabsTrigger>
+        <Tabs defaultValue="veg" className="space-y-6">
+          <TabsList className="w-full justify-start border-b">
+            <TabsTrigger value="veg" className="flex-1 sm:flex-none">Vegetarian</TabsTrigger>
+            <TabsTrigger value="non-veg" className="flex-1 sm:flex-none">Non-Vegetarian</TabsTrigger>
           </TabsList>
 
           <TabsContent value="veg">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {vegItems.map((item) => (
-                <Card key={item.id}>
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-48 object-cover"
-                  />
+                <Card key={item.id} className="overflow-hidden">
+                  <div className="aspect-video relative">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <CardHeader>
-                    <CardTitle className="flex justify-between">
-                      <span>{item.name}</span>
-                      <span>₹{item.price}</span>
+                    <CardTitle className="flex justify-between text-base sm:text-lg">
+                      <span className="truncate mr-4">{item.name}</span>
+                      <span className="flex-shrink-0">₹{item.price}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600">{item.description}</p>
+                    <p className="text-gray-600 text-sm line-clamp-2">{item.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -103,22 +105,24 @@ export default function HomePage() {
           </TabsContent>
 
           <TabsContent value="non-veg">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {nonVegItems.map((item) => (
-                <Card key={item.id}>
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-48 object-cover"
-                  />
+                <Card key={item.id} className="overflow-hidden">
+                  <div className="aspect-video relative">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <CardHeader>
-                    <CardTitle className="flex justify-between">
-                      <span>{item.name}</span>
-                      <span>₹{item.price}</span>
+                    <CardTitle className="flex justify-between text-base sm:text-lg">
+                      <span className="truncate mr-4">{item.name}</span>
+                      <span className="flex-shrink-0">₹{item.price}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600">{item.description}</p>
+                    <p className="text-gray-600 text-sm line-clamp-2">{item.description}</p>
                   </CardContent>
                 </Card>
               ))}

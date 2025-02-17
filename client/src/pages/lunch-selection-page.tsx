@@ -273,7 +273,7 @@ export default function LunchSelectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-primary p-4">
+      <header className="bg-primary p-4 sticky top-0 z-10">
         <div className="container mx-auto">
           <Link href="/">
             <Button variant="ghost" className="text-white">
@@ -287,8 +287,8 @@ export default function LunchSelectionPage() {
         </div>
       </header>
 
-      <main className="container mx-auto py-8">
-        <div className="mb-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <main className="container mx-auto py-4 px-4">
+        <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {kids.map((kid) => (
             <Button
               key={kid.id}
@@ -296,7 +296,7 @@ export default function LunchSelectionPage() {
               variant={selectedKidId === kid.id ? "default" : "ghost"}
               className="h-auto p-2 flex flex-col items-center gap-2"
             >
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
                 <AvatarImage 
                   src={kid.profilePicture || 
                     `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${kid.name}&backgroundColor=b6e3f4,c0aede,d1d4f9`
@@ -307,18 +307,20 @@ export default function LunchSelectionPage() {
                   {kid.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">{kid.name}</span>
+              <span className="text-xs sm:text-sm font-medium text-center line-clamp-1">
+                {kid.name}
+              </span>
             </Button>
           ))}
         </div>
 
         {selectedKidId ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card className="order-2 lg:order-1">
               <CardHeader>
-                <CardTitle className="flex justify-between items-center">
+                <CardTitle className="flex justify-between items-center flex-wrap gap-2">
                   <span>{step === "dates" ? "Select Dates" : "Choose Menu Items"}</span>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <Button
                       variant="outline"
                       size="icon"
@@ -326,8 +328,11 @@ export default function LunchSelectionPage() {
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="flex items-center px-2 text-sm">
+                    <span className="hidden sm:flex items-center px-2 text-sm">
                       {format(currentMonth, "MMMM yyyy")}
+                    </span>
+                    <span className="sm:hidden flex items-center px-2 text-sm">
+                      {format(currentMonth, "MMM yy")}
                     </span>
                     <Button
                       variant="outline"
@@ -523,20 +528,20 @@ export default function LunchSelectionPage() {
             </Card>
 
             {step === "menu" && (
-              <div className="space-y-6">
+              <div className="space-y-4 order-1 lg:order-2">
                 <Card>
                   <CardHeader>
                     <CardTitle>Vegetarian Options</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid gap-4">
+                  <CardContent className="grid gap-3">
                     {vegOptions.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="flex items-center justify-between p-3 border rounded-lg"
                       >
-                        <div>
-                          <h3 className="font-medium">{item.name}</h3>
-                          <p className="text-sm text-gray-500">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium truncate">{item.name}</h3>
+                          <p className="text-sm text-gray-500 line-clamp-2">
                             {item.description}
                           </p>
                           <p className="text-sm font-medium mt-1">
@@ -546,10 +551,10 @@ export default function LunchSelectionPage() {
                         <Button
                           variant="outline"
                           onClick={() => handleSaveSelections(item.id)}
-                          className="flex gap-2"
+                          className="ml-4 flex-shrink-0 flex gap-2 whitespace-nowrap"
                         >
                           <Check className="h-4 w-4" />
-                          Select
+                          <span className="hidden sm:inline">Select</span>
                         </Button>
                       </div>
                     ))}
@@ -560,15 +565,15 @@ export default function LunchSelectionPage() {
                   <CardHeader>
                     <CardTitle>Non-Vegetarian Options</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid gap-4">
+                  <CardContent className="grid gap-3">
                     {nonVegOptions.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="flex items-center justify-between p-3 border rounded-lg"
                       >
-                        <div>
-                          <h3 className="font-medium">{item.name}</h3>
-                          <p className="text-sm text-gray-500">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium truncate">{item.name}</h3>
+                          <p className="text-sm text-gray-500 line-clamp-2">
                             {item.description}
                           </p>
                           <p className="text-sm font-medium mt-1">
@@ -578,10 +583,10 @@ export default function LunchSelectionPage() {
                         <Button
                           variant="outline"
                           onClick={() => handleSaveSelections(item.id)}
-                          className="flex gap-2"
+                          className="ml-4 flex-shrink-0 flex gap-2 whitespace-nowrap"
                         >
                           <Check className="h-4 w-4" />
-                          Select
+                          <span className="hidden sm:inline">Select</span>
                         </Button>
                       </div>
                     ))}
