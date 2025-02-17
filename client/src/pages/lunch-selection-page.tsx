@@ -1,41 +1,98 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Kid, MonthlyMenuItem, LunchSelection } from "@shared/schema";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { format, addMonths, subMonths, isBefore, addDays } from "date-fns";
+import { DayPicker } from "react-day-picker";
+import { format, isSunday, isAfter, addDays } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function LunchSelectionPage() {
   const { user } = useAuth();
-  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const { toast } = useToast();
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [step, setStep] = useState<"dates" | "menu">("dates");
   const [selectedKidId, setSelectedKidId] = useState<number | null>(null);
 
   const { data: kids = [] } = useQuery<Kid[]>({
     queryKey: ["/api/kids"],
   });
 
+  const currentMonth = new Date();
   const { data: menuItems = [] } = useQuery<MonthlyMenuItem[]>({
     queryKey: [
-      `/api/menu/${selectedMonth.getFullYear()}/${selectedMonth.getMonth() + 1}`,
+      `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
   });
 
-  const { data: selections = [] } = useQuery<(LunchSelection & { menuItem: MonthlyMenuItem })[]>({
-    queryKey: [
-      `/api/kids/${selectedKidId}/lunch-selections/${selectedMonth.getFullYear()}/${
-        selectedMonth.getMonth() + 1
-      }`,
-    ],
-    enabled: !!selectedKidId,
+  const createSelectionMutation = useMutation({
+    mutationFn: async (data: { date: Date; menuItemId: number }) => {
+      if (!selectedKidId) throw new Error("No kid selected");
+      const res = await apiRequest("POST", `/api/kids/${selectedKidId}/lunch-selections`, {
+        ...data,
+        date: format(data.date, "yyyy-MM-dd"),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [
+          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+            currentMonth.getMonth() + 1
+          }`,
+        ],
+      });
+      toast({
+        title: "Success",
+        description: "Lunch selections saved successfully",
+      });
+    },
   });
-
-  const tomorrow = addDays(new Date(), 1);
 
   const vegOptions = menuItems.filter((item) => item.isVegetarian);
   const nonVegOptions = menuItems.filter((item) => !item.isVegetarian);
+
+  const tomorrow = addDays(new Date(), 1);
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDates((current) => {
+      const dateExists = current.some(
+        (d) => d.toDateString() === date.toDateString()
+      );
+      if (dateExists) {
+        return current.filter((d) => d.toDateString() !== date.toDateString());
+      }
+      return [...current, date];
+    });
+  };
+
+  const handleSaveSelections = async (menuItemId: number) => {
+    try {
+      await Promise.all(
+        selectedDates.map((date) =>
+          createSelectionMutation.mutate({ date, menuItemId })
+        )
+      );
+      setSelectedDates([]);
+      setStep("dates");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save lunch selections",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const disabledDays = {
+    before: tomorrow,
+    after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
+    filter: (date: Date) => isSunday(date),
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -54,126 +111,146 @@ export default function LunchSelectionPage() {
       </header>
 
       <main className="container mx-auto py-8">
-        <div className="mb-8 flex justify-between items-center">
-          <div className="flex gap-4">
-            {kids.map((kid) => (
-              <Button
-                key={kid.id}
-                onClick={() => setSelectedKidId(kid.id)}
-                variant={selectedKidId === kid.id ? "default" : "outline"}
-              >
-                {kid.name}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4">
+        <div className="mb-8 flex gap-4">
+          {kids.map((kid) => (
             <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
+              key={kid.id}
+              onClick={() => setSelectedKidId(kid.id)}
+              variant={selectedKidId === kid.id ? "default" : "outline"}
             >
-              <ChevronLeft className="h-4 w-4" />
+              {kid.name}
             </Button>
-            <span className="text-lg font-medium">
-              {format(selectedMonth, "MMMM yyyy")}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          ))}
         </div>
 
         {selectedKidId ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Vegetarian Options</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                {vegOptions.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div>
-                      <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {item.description}
-                      </p>
-                    </div>
-                    <Button variant="outline">Select</Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Non-Vegetarian Options</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                {nonVegOptions.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div>
-                      <h3 className="font-medium">{item.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {item.description}
-                      </p>
-                    </div>
-                    <Button variant="outline">Select</Button>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Current Selections</CardTitle>
+                <CardTitle>
+                  {step === "dates" ? "Select Dates" : "Choose Menu Items"}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {selections.map((selection) => {
-                    const isLocked = isBefore(
-                      new Date(selection.date),
-                      tomorrow
-                    );
-                    return (
+                {step === "dates" ? (
+                  <>
+                    <DayPicker
+                      mode="multiple"
+                      selected={selectedDates}
+                      onSelect={(dates) => setSelectedDates(dates || [])}
+                      disabled={disabledDays}
+                      modifiers={{
+                        selected: selectedDates,
+                      }}
+                      modifiersStyles={{
+                        selected: {
+                          backgroundColor: "hsl(var(--primary))",
+                          color: "white",
+                        },
+                      }}
+                    />
+                    <Button
+                      className="w-full mt-4"
+                      disabled={selectedDates.length === 0}
+                      onClick={() => setStep("menu")}
+                    >
+                      Continue to Menu Selection
+                    </Button>
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-medium mb-4">Selected Dates:</h3>
+                      <div className="space-y-2">
+                        {selectedDates.map((date) => (
+                          <div
+                            key={date.toISOString()}
+                            className="text-sm text-gray-600"
+                          >
+                            {format(date, "EEEE, MMMM d, yyyy")}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setStep("dates")}
+                    >
+                      Back to Date Selection
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {step === "menu" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Vegetarian Options</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-4">
+                    {vegOptions.map((item) => (
                       <div
-                        key={selection.id}
-                        className={`flex items-center justify-between p-4 border rounded-lg ${
-                          isLocked ? "opacity-50" : ""
-                        }`}
+                        key={item.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
                       >
                         <div>
-                          <div className="font-medium">
-                            {format(new Date(selection.date), "EEEE, MMMM d")}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {selection.menuItem.name}
-                          </div>
+                          <h3 className="font-medium">{item.name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {item.description}
+                          </p>
+                          <p className="text-sm font-medium mt-1">
+                            ₹{item.price}
+                          </p>
                         </div>
                         <Button
                           variant="outline"
-                          disabled={isLocked}
+                          onClick={() => handleSaveSelections(item.id)}
                           className="flex gap-2"
                         >
-                          {isLocked ? "Locked" : "Change"}
-                          {!isLocked && <ArrowRight className="h-4 w-4" />}
+                          <Check className="h-4 w-4" />
+                          Select
                         </Button>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Non-Vegetarian Options</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-4">
+                    {nonVegOptions.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div>
+                          <h3 className="font-medium">{item.name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {item.description}
+                          </p>
+                          <p className="text-sm font-medium mt-1">
+                            ₹{item.price}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleSaveSelections(item.id)}
+                          className="flex gap-2"
+                        >
+                          <Check className="h-4 w-4" />
+                          Select
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         ) : (
           <Card>
