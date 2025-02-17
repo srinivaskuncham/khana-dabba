@@ -1,5 +1,5 @@
 // Configuration constants for the application
-export const API_URL = window.location.origin; // This will use the same origin as the frontend
+export const API_URL = ''; // Empty string makes it use the same origin as the frontend
 
 // Other configuration constants
 export const APP_NAME = 'Khana Dabba';

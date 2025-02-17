@@ -32,7 +32,8 @@ export default function AuthPage() {
     },
   });
 
-  if (user) {
+  // Only redirect if we have a user AND we're not in the process of logging in/registering
+  if (user && !loginMutation.isPending && !registerMutation.isPending) {
     return <Redirect to="/" />;
   }
 
@@ -79,7 +80,7 @@ export default function AuthPage() {
                     className="w-full"
                     disabled={loginMutation.isPending}
                   >
-                    Login
+                    {loginMutation.isPending ? "Logging in..." : "Login"}
                   </Button>
                 </form>
               </TabsContent>
@@ -139,7 +140,7 @@ export default function AuthPage() {
                     className="w-full"
                     disabled={registerMutation.isPending}
                   >
-                    Register
+                    {registerMutation.isPending ? "Registering..." : "Register"}
                   </Button>
                 </form>
               </TabsContent>
