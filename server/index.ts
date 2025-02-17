@@ -14,7 +14,6 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP in development
 }));
 
-// Set trust proxy before other middleware
 app.set('trust proxy', 1);
 
 // Configure CORS
@@ -59,35 +58,28 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     console.log('Routes registered');
 
-    // Static file serving and client routing setup
-    const distPath = path.join(process.cwd(), "dist", "public");
+    // importantly only setup vite in development and after
+    // setting up all the other routes so the catch-all route
+    // doesn't interfere with the other routes
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      // Serve static files from dist/public
+      const distPath = path.join(process.cwd(), "dist", "public");
+      console.log('Production mode: serving static files from:', distPath);
 
-    // Serve static files
-    app.use(express.static(distPath, {
-      index: false // Don't serve index.html automatically
-    }));
+      app.use(express.static(distPath));
 
-    // API routes are handled by registerRoutes
-    // For all other routes, serve the React app
-    app.get('*', (req, res, next) => {
-      // Skip API routes
-      if (req.path.startsWith('/api')) {
-        return next();
-      }
-
-      // Log the request for debugging
-      console.log('Serving index.html for path:', req.path);
-
-      const indexPath = path.join(distPath, 'index.html');
-      res.sendFile(indexPath, (err) => {
-        if (err) {
-          console.error('Error serving index.html:', err);
-          res.status(500).send('Error serving application');
+      // Handle client-side routing
+      app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) {
+          return next();
         }
+        res.sendFile(path.join(distPath, 'index.html'));
       });
-    });
+    }
 
-    // Error handling
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Server error:', err);
       res.status(err.status || 500).json({ 
@@ -95,11 +87,10 @@ app.use((req, res, next) => {
       });
     });
 
-    // Start server
-    const PORT = process.env.PORT || 5000;
+    // ALWAYS serve the app on port 5000
+    const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`Serving static files from: ${distPath}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
