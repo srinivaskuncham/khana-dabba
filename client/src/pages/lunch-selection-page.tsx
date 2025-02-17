@@ -221,15 +221,15 @@ export default function LunchSelectionPage() {
                           background-color: hsl(var(--primary));
                         }
                         .veg-selected {
-                          background-color: hsl(142.1 76.2% 36.3%);
+                          background-color: hsl(142.1 70.2% 29.3%);
                           color: white;
                         }
                         .veg-selected.rdp-day_selected {
-                          outline: 2px solid hsl(142.1 76.2% 36.3%);
+                          outline: 2px solid hsl(142.1 70.2% 29.3%);
                           outline-offset: 2px;
                         }
                         .veg-selected:hover {
-                          background-color: hsl(142.1 76.2% 36.3%);
+                          background-color: hsl(142.1 70.2% 29.3%);
                         }
                         .non-veg-selected {
                           background-color: hsl(0 72.2% 50.6%);
@@ -294,7 +294,7 @@ export default function LunchSelectionPage() {
                               className={cn(
                                 "p-3 rounded-lg",
                                 !existingSelection && "bg-gray-50 border border-gray-200",
-                                existingSelection && existingSelection.menuItem.isVegetarian && "bg-olive-50 border border-olive-200",
+                                existingSelection && existingSelection.menuItem.isVegetarian && "bg-green-100 border border-green-300",
                                 existingSelection && !existingSelection.menuItem.isVegetarian && "bg-red-50 border border-red-200"
                               )}
                             >
