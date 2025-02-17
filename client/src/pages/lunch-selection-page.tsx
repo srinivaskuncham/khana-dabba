@@ -214,6 +214,8 @@ export default function LunchSelectionPage() {
                         .rdp-day_selected {
                           background-color: hsl(var(--primary));
                           color: white;
+                          outline: 2px solid hsl(var(--primary));
+                          outline-offset: 2px;
                         }
                         .rdp-day_selected:hover {
                           background-color: hsl(var(--primary));
@@ -222,12 +224,20 @@ export default function LunchSelectionPage() {
                           background-color: hsl(142.1 76.2% 36.3%);
                           color: white;
                         }
+                        .veg-selected.rdp-day_selected {
+                          outline: 2px solid hsl(142.1 76.2% 36.3%);
+                          outline-offset: 2px;
+                        }
                         .veg-selected:hover {
                           background-color: hsl(142.1 76.2% 36.3%);
                         }
                         .non-veg-selected {
                           background-color: hsl(0 72.2% 50.6%);
                           color: white;
+                        }
+                        .non-veg-selected.rdp-day_selected {
+                          outline: 2px solid hsl(0 72.2% 50.6%);
+                          outline-offset: 2px;
                         }
                         .non-veg-selected:hover {
                           background-color: hsl(0 72.2% 50.6%);
@@ -283,7 +293,9 @@ export default function LunchSelectionPage() {
                               key={date.toISOString()}
                               className={cn(
                                 "p-3 rounded-lg",
-                                existingSelection ? "bg-green-50 border border-green-200" : "border"
+                                !existingSelection && "bg-gray-50 border border-gray-200",
+                                existingSelection && existingSelection.menuItem.isVegetarian && "bg-olive-50 border border-olive-200",
+                                existingSelection && !existingSelection.menuItem.isVegetarian && "bg-red-50 border border-red-200"
                               )}
                             >
                               <div className="font-medium">
