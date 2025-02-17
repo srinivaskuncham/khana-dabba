@@ -13,15 +13,15 @@ import {
   Switch,
   useTheme,
   Appbar,
-  HelperText,
   Portal,
   Dialog,
   RadioButton,
 } from 'react-native-paper';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { MonthlyMenuItem, insertMonthlyMenuItemSchema } from '../../shared/schema';
+import { MonthlyMenuItem } from '../shared/schema';
 import { useAuth } from '../hooks/useAuth';
 import { queryClient } from '../lib/queryClient';
+import { API_URL } from '../lib/config';
 
 export default function AdminScreen({ navigation }) {
   const { user } = useAuth();
@@ -45,7 +45,7 @@ export default function AdminScreen({ navigation }) {
 
   const createItemMutation = useMutation({
     mutationFn: async (item: typeof newItem) => {
-      const response = await fetch('/api/admin/menu-items', {
+      const response = await fetch(`${API_URL}/api/admin/menu-items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export default function AdminScreen({ navigation }) {
 
   const toggleAvailabilityMutation = useMutation({
     mutationFn: async ({ id, isAvailable }: { id: number; isAvailable: boolean }) => {
-      const response = await fetch(`/api/admin/menu-items/${id}`, {
+      const response = await fetch(`${API_URL}/api/admin/menu-items/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
