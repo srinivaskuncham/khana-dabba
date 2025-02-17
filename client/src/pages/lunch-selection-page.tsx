@@ -29,6 +29,7 @@ export default function LunchSelectionPage() {
     queryKey: [
       `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
+    enabled: true, // Ensure this query always runs
   });
 
   const { data: existingSelections = [] } = useQuery<(LunchSelection & { menuItem: MonthlyMenuItem })[]>({
@@ -50,12 +51,15 @@ export default function LunchSelectionPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [
-          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
-            currentMonth.getMonth() + 1
-          }`,
-        ],
+      // Invalidate queries for both current and next month if selections span months
+      const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
+      [...months].forEach(monthKey => {
+        const [year, month] = monthKey.split('/');
+        queryClient.invalidateQueries({ 
+          queryKey: [
+            `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
+          ],
+        });
       });
       toast({
         title: "Success",
@@ -75,12 +79,15 @@ export default function LunchSelectionPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [
-          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
-            currentMonth.getMonth() + 1
-          }`,
-        ],
+      // Invalidate queries for both current and next month if selections span months
+      const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
+      [...months].forEach(monthKey => {
+        const [year, month] = monthKey.split('/');
+        queryClient.invalidateQueries({ 
+          queryKey: [
+            `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
+          ],
+        });
       });
       toast({
         title: "Success",
