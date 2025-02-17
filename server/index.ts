@@ -3,15 +3,15 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
-import { setupVite, log } from "./vite";
+import { setupVite } from "./vite";
 import { setupAuth } from "./auth";
 import path from "path";
 
 const app = express();
 
-// Security middleware
+// Basic security middleware with CSP disabled for development
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP in development
+  contentSecurityPolicy: false,
 }));
 
 app.set('trust proxy', 1);
@@ -37,12 +37,11 @@ app.use(express.urlencoded({ extended: false }));
 // Request logging
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
-  console.log(`[${new Date().toISOString()}] ${req.method} ${path}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${path} ${res.statusCode} ${duration}ms`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
   });
 
   next();
@@ -58,26 +57,9 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     console.log('Routes registered');
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      // Serve static files from dist/public
-      const distPath = path.join(process.cwd(), "dist", "public");
-      console.log('Production mode: serving static files from:', distPath);
-
-      app.use(express.static(distPath));
-
-      // Handle client-side routing
-      app.get('*', (req, res, next) => {
-        if (req.path.startsWith('/api')) {
-          return next();
-        }
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
-    }
+    // Development mode: use Vite's dev server
+    await setupVite(app, server);
+    console.log('Vite development server setup completed');
 
     // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -87,7 +69,7 @@ app.use((req, res, next) => {
       });
     });
 
-    // ALWAYS serve the app on port 5000
+    // Start server on port 5000
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running on port ${PORT}`);
