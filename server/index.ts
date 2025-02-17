@@ -57,10 +57,10 @@ app.use((req, res, next) => {
     }
 
     // Start server
-    const PORT = 5000;
+    const PORT = process.env.PORT || 5000;
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server running at http://0.0.0.0:${PORT}`);
-      log(`Server running at http://0.0.0.0:${PORT}`);
+      log(`serving on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
