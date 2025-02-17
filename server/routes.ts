@@ -132,12 +132,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const deleted = await storage.deleteLunchSelection(parseInt(req.params.id));
       if (!deleted) {
         return res.status(400).json({
-          message: "Cannot delete selection within 24 hours of delivery",
+          message: "Cannot delete selection - either it doesn't exist, or it's within 24 hours of delivery",
         });
       }
       res.sendStatus(204);
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete lunch selection", error: error instanceof Error ? error.message : String(error) });
+      console.error('Error deleting lunch selection:', error);
+      res.status(500).json({ 
+        message: "Failed to delete lunch selection", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 

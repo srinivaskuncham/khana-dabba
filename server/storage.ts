@@ -213,28 +213,45 @@ export class DatabaseStorage implements IStorage {
   async deleteLunchSelection(id: number): Promise<boolean> {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
 
     // First check if the selection can be deleted (>24h before delivery)
     const [existingSelection] = await db
       .select()
       .from(lunchSelections)
-      .where(
-        and(
-          eq(lunchSelections.id, id),
-          gte(lunchSelections.date, tomorrow)
-        )
-      );
+      .where(eq(lunchSelections.id, id));
 
     if (!existingSelection) {
+      console.log('No existing selection found for id:', id);
       return false;
     }
 
-    const [deleted] = await db
-      .delete(lunchSelections)
-      .where(eq(lunchSelections.id, id))
-      .returning();
+    // Convert the date string to Date object for comparison
+    const selectionDate = new Date(existingSelection.date);
+    selectionDate.setHours(0, 0, 0, 0);
 
-    return !!deleted;
+    console.log('Debug date comparison for deletion:', {
+      selectionDate: selectionDate.toISOString(),
+      tomorrow: tomorrow.toISOString(),
+      comparison: selectionDate < tomorrow
+    });
+
+    if (selectionDate < tomorrow) {
+      console.log('Selection date is before tomorrow, cannot delete');
+      return false;
+    }
+
+    try {
+      const [deleted] = await db
+        .delete(lunchSelections)
+        .where(eq(lunchSelections.id, id))
+        .returning();
+
+      return !!deleted;
+    } catch (error) {
+      console.error('Error deleting lunch selection:', error);
+      return false;
+    }
   }
 
   // Holiday Management methods
