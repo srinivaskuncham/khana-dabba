@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,6 +23,7 @@ export default function KidsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [editingKid, setEditingKid] = useState<Kid | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: kids = [], isLoading } = useQuery<Kid[]>({
     queryKey: ["/api/kids"],
@@ -47,6 +47,7 @@ export default function KidsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/kids"] });
       form.reset();
+      setIsDialogOpen(false);
       toast({
         title: "Success",
         description: "Kid profile created successfully",
@@ -62,6 +63,7 @@ export default function KidsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/kids"] });
       setEditingKid(null);
+      setIsDialogOpen(false);
       toast({
         title: "Success",
         description: "Kid profile updated successfully",
@@ -90,6 +92,23 @@ export default function KidsPage() {
     }
   };
 
+  const handleOpenDialog = (kid?: Kid) => {
+    if (kid) {
+      setEditingKid(kid);
+      form.reset(kid);
+    } else {
+      setEditingKid(null);
+      form.reset();
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingKid(null);
+    form.reset();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="container mx-auto">
@@ -102,47 +121,46 @@ export default function KidsPage() {
 
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Kids Profiles</h1>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex gap-2">
-                <Plus size={18} />
-                Add Kid
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingKid ? "Edit Kid Profile" : "Add New Kid"}
-                </DialogTitle>
-              </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Name</Label>
-                  <Input id="name" {...form.register("name")} />
-                </div>
-                <div>
-                  <Label htmlFor="grade">Grade</Label>
-                  <Input id="grade" {...form.register("grade")} />
-                </div>
-                <div>
-                  <Label htmlFor="school">School</Label>
-                  <Input id="school" {...form.register("school")} />
-                </div>
-                <div>
-                  <Label htmlFor="rollNumber">Roll Number</Label>
-                  <Input id="rollNumber" {...form.register("rollNumber")} />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                >
-                  {editingKid ? "Update" : "Add"} Kid
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button className="flex gap-2" onClick={() => handleOpenDialog()}>
+            <Plus size={18} />
+            Add Kid
+          </Button>
         </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingKid ? "Edit Kid Profile" : "Add New Kid"}
+              </DialogTitle>
+            </DialogHeader>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" {...form.register("name")} />
+              </div>
+              <div>
+                <Label htmlFor="grade">Grade</Label>
+                <Input id="grade" {...form.register("grade")} />
+              </div>
+              <div>
+                <Label htmlFor="school">School</Label>
+                <Input id="school" {...form.register("school")} />
+              </div>
+              <div>
+                <Label htmlFor="rollNumber">Roll Number</Label>
+                <Input id="rollNumber" {...form.register("rollNumber")} />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {editingKid ? "Update" : "Add"} Kid
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {kids.map((kid) => (
@@ -154,10 +172,7 @@ export default function KidsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        setEditingKid(kid);
-                        form.reset(kid);
-                      }}
+                      onClick={() => handleOpenDialog(kid)}
                     >
                       <Pencil size={18} />
                     </Button>
