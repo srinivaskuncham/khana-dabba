@@ -4,15 +4,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
+import { useLocation } from "wouter";
 
 export default function AuthPage() {
-  const { loginMutation } = useAuth();
+  const { loginMutation, user } = useAuth();
+  const [, setLocation] = useLocation();
+
   const form = useForm({
     defaultValues: {
       username: "",
       password: "",
     },
   });
+
+  // Redirect if already logged in
+  if (user) {
+    setLocation("/");
+    return null;
+  }
+
+  const onSubmit = async (data: { username: string; password: string }) => {
+    await loginMutation.mutateAsync(data, {
+      onSuccess: () => {
+        setLocation("/");
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -22,7 +39,7 @@ export default function AuthPage() {
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))}
+            onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-4"
           >
             <div className="space-y-2">
