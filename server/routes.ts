@@ -2,20 +2,112 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertKidSchema, insertUserSchema } from "@shared/schema";
+import { insertKidSchema, insertUserSchema, insertLunchSelectionSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  app.get("/api/menu", async (_req, res) => {
-    const menuItems = await storage.getMenuItems();
+  // Monthly Menu endpoints
+  app.get("/api/menu/:year/:month", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const date = new Date(parseInt(req.params.year), parseInt(req.params.month) - 1);
+    const menuItems = await storage.getMonthlyMenuItems(date);
     res.json(menuItems);
   });
 
-  app.get("/api/menu/:category", async (req, res) => {
-    const menuItems = await storage.getMenuItemsByCategory(req.params.category);
+  app.get("/api/menu/:year/:month/veg", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const date = new Date(parseInt(req.params.year), parseInt(req.params.month) - 1);
+    const menuItems = await storage.getVegMenuItems(date);
     res.json(menuItems);
+  });
+
+  app.get("/api/menu/:year/:month/non-veg", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const date = new Date(parseInt(req.params.year), parseInt(req.params.month) - 1);
+    const menuItems = await storage.getNonVegMenuItems(date);
+    res.json(menuItems);
+  });
+
+  // Lunch Selection endpoints
+  app.get("/api/kids/:kidId/lunch-selections/:year/:month", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const kidId = parseInt(req.params.kidId);
+    const kid = await storage.getKid(kidId);
+
+    if (!kid || kid.userId !== req.user.id) {
+      return res.sendStatus(404);
+    }
+
+    const date = new Date(parseInt(req.params.year), parseInt(req.params.month) - 1);
+    const selections = await storage.getLunchSelectionsForKid(kidId, date);
+    res.json(selections);
+  });
+
+  app.post("/api/kids/:kidId/lunch-selections", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const kidId = parseInt(req.params.kidId);
+    const kid = await storage.getKid(kidId);
+
+    if (!kid || kid.userId !== req.user.id) {
+      return res.sendStatus(404);
+    }
+
+    try {
+      const selectionData = insertLunchSelectionSchema.parse({
+        ...req.body,
+        kidId,
+      });
+
+      const selection = await storage.createLunchSelection(selectionData);
+      res.status(201).json(selection);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create lunch selection" });
+      }
+    }
+  });
+
+  app.put("/api/kids/:kidId/lunch-selections/:id", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const kidId = parseInt(req.params.kidId);
+    const kid = await storage.getKid(kidId);
+
+    if (!kid || kid.userId !== req.user.id) {
+      return res.sendStatus(404);
+    }
+
+    try {
+      const selectionData = insertLunchSelectionSchema.partial().parse(req.body);
+      const updated = await storage.updateLunchSelection(
+        parseInt(req.params.id),
+        selectionData,
+        req.user.id
+      );
+
+      if (!updated) {
+        return res.status(400).json({
+          message: "Cannot modify selection within 24 hours of delivery",
+        });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update lunch selection" });
+      }
+    }
   });
 
   // User profile endpoint

@@ -1,6 +1,6 @@
-import { users, menuItems, kids, type User, type MenuItem, type InsertUser, type Kid, type InsertKid } from "@shared/schema";
+import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -12,13 +12,24 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
-  getMenuItems(): Promise<MenuItem[]>;
-  getMenuItemsByCategory(category: string): Promise<MenuItem[]>;
+
+  // Monthly Menu Items
+  getMonthlyMenuItems(month: Date): Promise<MonthlyMenuItem[]>;
+  getVegMenuItems(month: Date): Promise<MonthlyMenuItem[]>;
+  getNonVegMenuItems(month: Date): Promise<MonthlyMenuItem[]>;
+
+  // Kids
   getKidsByUserId(userId: number): Promise<Kid[]>;
   getKid(kidId: number): Promise<Kid | undefined>;
   createKid(kid: InsertKid): Promise<Kid>;
   updateKid(kidId: number, kid: Partial<InsertKid>): Promise<Kid | undefined>;
   deleteKid(kidId: number): Promise<boolean>;
+
+  // Lunch Selections
+  getLunchSelectionsForKid(kidId: number, month: Date): Promise<(LunchSelection & { menuItem: MonthlyMenuItem })[]>;
+  createLunchSelection(selection: InsertLunchSelection): Promise<LunchSelection>;
+  updateLunchSelection(id: number, selection: Partial<InsertLunchSelection>, userId: number): Promise<LunchSelection | undefined>;
+
   sessionStore: session.Store;
 }
 
@@ -32,6 +43,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // User methods remain unchanged
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -56,18 +68,34 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getMenuItems(): Promise<MenuItem[]> {
-    return await db.select().from(menuItems);
-  }
-
-  async getMenuItemsByCategory(category: string): Promise<MenuItem[]> {
+  // Monthly Menu Items methods
+  async getMonthlyMenuItems(month: Date): Promise<MonthlyMenuItem[]> {
     return await db
       .select()
-      .from(menuItems)
-      .where(eq(menuItems.category, category));
+      .from(monthlyMenuItems)
+      .where(eq(monthlyMenuItems.month, month))
+      .where(eq(monthlyMenuItems.isAvailable, true));
   }
 
-  // Kids related methods
+  async getVegMenuItems(month: Date): Promise<MonthlyMenuItem[]> {
+    return await db
+      .select()
+      .from(monthlyMenuItems)
+      .where(eq(monthlyMenuItems.month, month))
+      .where(eq(monthlyMenuItems.isVegetarian, true))
+      .where(eq(monthlyMenuItems.isAvailable, true));
+  }
+
+  async getNonVegMenuItems(month: Date): Promise<MonthlyMenuItem[]> {
+    return await db
+      .select()
+      .from(monthlyMenuItems)
+      .where(eq(monthlyMenuItems.month, month))
+      .where(eq(monthlyMenuItems.isVegetarian, false))
+      .where(eq(monthlyMenuItems.isAvailable, true));
+  }
+
+  // Kids related methods remain unchanged
   async getKidsByUserId(userId: number): Promise<Kid[]> {
     return await db.select().from(kids).where(eq(kids.userId, userId));
   }
@@ -94,6 +122,69 @@ export class DatabaseStorage implements IStorage {
   async deleteKid(kidId: number): Promise<boolean> {
     const [deleted] = await db.delete(kids).where(eq(kids.id, kidId)).returning();
     return !!deleted;
+  }
+
+  // Lunch Selections methods
+  async getLunchSelectionsForKid(kidId: number, month: Date): Promise<(LunchSelection & { menuItem: MonthlyMenuItem })[]> {
+    return await db
+      .select({
+        id: lunchSelections.id,
+        kidId: lunchSelections.kidId,
+        menuItemId: lunchSelections.menuItemId,
+        date: lunchSelections.date,
+        createdAt: lunchSelections.createdAt,
+        modifiedAt: lunchSelections.modifiedAt,
+        menuItem: monthlyMenuItems,
+      })
+      .from(lunchSelections)
+      .innerJoin(monthlyMenuItems, eq(lunchSelections.menuItemId, monthlyMenuItems.id))
+      .where(eq(lunchSelections.kidId, kidId));
+  }
+
+  async createLunchSelection(selection: InsertLunchSelection): Promise<LunchSelection> {
+    const [created] = await db.insert(lunchSelections).values(selection).returning();
+    return created;
+  }
+
+  async updateLunchSelection(
+    id: number,
+    selection: Partial<InsertLunchSelection>,
+    userId: number
+  ): Promise<LunchSelection | undefined> {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // First check if the selection can be modified (>24h before delivery)
+    const [existingSelection] = await db
+      .select()
+      .from(lunchSelections)
+      .where(
+        and(
+          eq(lunchSelections.id, id),
+          gte(lunchSelections.date, tomorrow)
+        )
+      );
+
+    if (!existingSelection) {
+      return undefined;
+    }
+
+    // Create history record
+    await db.insert(selectionHistory).values({
+      selectionId: id,
+      oldMenuItemId: existingSelection.menuItemId,
+      newMenuItemId: selection.menuItemId!,
+      changedBy: userId,
+    });
+
+    // Update the selection
+    const [updated] = await db
+      .update(lunchSelections)
+      .set({ ...selection, modifiedAt: new Date() })
+      .where(eq(lunchSelections.id, id))
+      .returning();
+
+    return updated;
   }
 }
 
