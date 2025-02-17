@@ -18,7 +18,7 @@ import {
   RadioButton,
 } from 'react-native-paper';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { MonthlyMenuItem } from '../shared/schema';
+import { MonthlyMenuItem } from '../../shared/schema';
 import { useAuth } from '../hooks/useAuth';
 import { queryClient } from '../lib/queryClient';
 import { API_URL } from '../lib/config';
