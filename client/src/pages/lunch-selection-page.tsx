@@ -3,11 +3,11 @@ import { Kid, MonthlyMenuItem, LunchSelection } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Check, CalendarCheck } from "lucide-react";
+import { ArrowLeft, Check, CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { DayPicker } from "react-day-picker";
-import { format, isSunday, isAfter, addDays, isSameDay } from "date-fns";
+import { format, isSunday, isAfter, addDays, isSameDay, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -18,12 +18,12 @@ export default function LunchSelectionPage() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [step, setStep] = useState<"dates" | "menu">("dates");
   const [selectedKidId, setSelectedKidId] = useState<number | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: kids = [] } = useQuery<Kid[]>({
     queryKey: ["/api/kids"],
   });
 
-  const currentMonth = new Date();
   const { data: menuItems = [] } = useQuery<MonthlyMenuItem[]>({
     queryKey: [
       `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
@@ -178,8 +178,27 @@ export default function LunchSelectionPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>
-                  {step === "dates" ? "Select Dates" : "Choose Menu Items"}
+                <CardTitle className="flex justify-between items-center">
+                  <span>{step === "dates" ? "Select Dates" : "Choose Menu Items"}</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="flex items-center px-2 text-sm">
+                      {format(currentMonth, "MMMM yyyy")}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -257,6 +276,7 @@ export default function LunchSelectionPage() {
                       selected={selectedDates}
                       onSelect={handleDateSelect}
                       disabled={disabledDays}
+                      month={currentMonth}
                       modifiers={{
                         selected: selectedDates,
                         vegSelected: existingSelections
