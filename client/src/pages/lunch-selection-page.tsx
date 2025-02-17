@@ -146,22 +146,31 @@ export default function LunchSelectionPage() {
                       {`
                         .rdp {
                           margin: 0;
+                          width: 100%;
                         }
                         .rdp-month {
                           background-color: white;
-                          padding: 1rem;
+                          padding: 1.5rem;
                           border-radius: 0.5rem;
+                          width: 100%;
                         }
                         .rdp-cell {
                           padding: 0.5rem;
+                          text-align: center;
                         }
                         .rdp-day {
                           width: 2.5rem;
                           height: 2.5rem;
                           border-radius: 9999px;
+                          font-size: 0.875rem;
+                          margin: 0 auto;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
                         }
                         .rdp-day_selected {
                           background-color: hsl(var(--primary));
+                          color: white;
                         }
                         .rdp-day_selected:hover {
                           background-color: hsl(var(--primary));
@@ -172,6 +181,14 @@ export default function LunchSelectionPage() {
                         }
                         .lunch-selected:hover {
                           background-color: hsl(142.1 76.2% 36.3%);
+                        }
+                        .rdp-head_cell {
+                          font-weight: 500;
+                          font-size: 0.875rem;
+                          color: hsl(var(--muted-foreground));
+                        }
+                        .rdp-nav {
+                          display: none;
                         }
                       `}
                     </style>
