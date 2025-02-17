@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Check, CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DayPicker } from "react-day-picker";
 import { format, isSunday, isAfter, addDays, isSameDay, subMonths, addMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -178,21 +178,25 @@ export default function LunchSelectionPage() {
     enabled: true,
   });
 
-  const disabledDays = {
-    before: tomorrow,
-    after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
-    dates: [
-      ...holidays.map(h => new Date(h.date)),
-      // Add all Sundays in the current month
-      ...Array.from({ length: 31 }, (_, i) => {
-        const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
-        if (date.getMonth() === currentMonth.getMonth() && isSunday(date)) {
-          return date;
-        }
-        return null;
-      }).filter((date): date is Date => date !== null)
-    ]
-  };
+  // Add this effect to reset selected dates when kid changes
+  useEffect(() => {
+    setSelectedDates([]);
+    setStep("dates");
+  }, [selectedKidId]);
+
+  // Update the disabledDays logic
+  const disabledDays = [
+    { before: tomorrow },
+    { after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0) },
+    ...holidays.map(h => new Date(h.date)),
+    ...Array.from({ length: 31 }, (_, i) => {
+      const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
+      if (date.getMonth() === currentMonth.getMonth() && isSunday(date)) {
+        return date;
+      }
+      return null;
+    }).filter((date): date is Date => date !== null)
+  ];
 
   const handleClearSelections = async () => {
     try {
