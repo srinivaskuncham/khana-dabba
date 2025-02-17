@@ -5,16 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Menu, LogOut, User, UsersRound, CalendarCheck } from "lucide-react";
+import { LogOut, User, UsersRound, CalendarCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import { AnimatedHamburger } from "@/components/ui/animated-hamburger";
 
 export default function HomePage() {
   const { user, logoutMutation } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
   const { data: menuItems, isLoading } = useQuery<MonthlyMenuItem[]>({
     queryKey: [`/api/menu/${new Date().getFullYear()}/${new Date().getMonth() + 1}`],
   });
@@ -27,11 +30,9 @@ export default function HomePage() {
       <nav className="bg-primary p-4">
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-white">Khana Dabba</h1>
-          <DropdownMenu>
+          <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
+              <AnimatedHamburger isOpen={isOpen} onClick={() => setIsOpen(!isOpen)} />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <Link href="/lunch-selection">
