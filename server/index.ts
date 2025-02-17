@@ -70,6 +70,8 @@ process.on('SIGINT', shutdown);
     } else {
       // In production, serve from dist/public
       const distPath = path.resolve(process.cwd(), "dist", "public");
+      console.log('Production static files path:', distPath);
+
       app.use(express.static(distPath));
 
       // Serve index.html for all non-API routes (SPA support)
@@ -86,7 +88,7 @@ process.on('SIGINT', shutdown);
       console.error('Server error:', err);
       const status = err.status || err.statusCode || 500;
       const message = process.env.NODE_ENV === "production"
-        ? "Internal Server Error" // Don't expose error details in production
+        ? "Internal Server Error"
         : err.message || "Internal Server Error";
       res.status(status).json({ message });
     });
@@ -97,9 +99,16 @@ process.on('SIGINT', shutdown);
     });
 
     // Start server
-    const PORT = process.env.PORT || 3000; // Use Replit's PORT env var
-    server.listen(PORT, () => {
-      console.log(`Server started on port ${PORT}`);
+    const PORT = process.env.PORT || 5000;
+    console.log('Starting server with environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: PORT,
+      REPL_ID: process.env.REPL_ID,
+      REPL_SLUG: process.env.REPL_SLUG
+    });
+
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server started and listening on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
   } catch (error) {
