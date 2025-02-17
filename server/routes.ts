@@ -110,6 +110,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/kids/:kidId/lunch-selections/:id", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const kidId = parseInt(req.params.kidId);
+    const kid = await storage.getKid(kidId);
+
+    if (!kid || kid.userId !== req.user.id) {
+      return res.sendStatus(404);
+    }
+
+    try {
+      const deleted = await storage.deleteLunchSelection(parseInt(req.params.id));
+      if (!deleted) {
+        return res.status(400).json({
+          message: "Cannot delete selection within 24 hours of delivery",
+        });
+      }
+      res.sendStatus(204);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete lunch selection" });
+    }
+  });
+
   // User profile endpoint
   app.put("/api/user", async (req, res) => {
     if (!req.user) return res.sendStatus(401);

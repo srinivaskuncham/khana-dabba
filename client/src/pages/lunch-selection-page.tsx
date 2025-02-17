@@ -96,6 +96,33 @@ export default function LunchSelectionPage() {
     },
   });
 
+  const clearSelectionMutation = useMutation({
+    mutationFn: async ({ id }: { id: number }) => {
+      if (!selectedKidId) throw new Error("No kid selected");
+      const res = await apiRequest(
+        "DELETE",
+        `/api/kids/${selectedKidId}/lunch-selections/${id}`
+      );
+      return res.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries for both current and next month if selections span months
+      const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
+      [...months].forEach(monthKey => {
+        const [year, month] = monthKey.split('/');
+        queryClient.invalidateQueries({ 
+          queryKey: [
+            `/api/kids/${selectedKidId}/lunch-selections/${year}/${month}`,
+          ],
+        });
+      });
+      toast({
+        title: "Success",
+        description: "Lunch selections cleared successfully",
+      });
+    },
+  });
+
   const handleSaveSelections = async (menuItemId: number) => {
     try {
       await Promise.all(
@@ -165,6 +192,26 @@ export default function LunchSelectionPage() {
         return date.getMonth() === currentMonth.getMonth() && isSunday(date) ? date : null;
       }).filter(Boolean)
     ]
+  };
+
+  const handleClearSelections = async () => {
+    try {
+      await Promise.all(
+        selectedDates.map(async (date) => {
+          const existingSelection = getSelectionForDate(date);
+          if (existingSelection) {
+            await clearSelectionMutation.mutate({ id: existingSelection.id });
+          }
+        })
+      );
+      setStep("dates");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear lunch selections",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -306,14 +353,21 @@ export default function LunchSelectionPage() {
                         }
                         .rdp-day_disabled.holiday,
                         .holiday {
-                          background-color: hsl(var(--destructive)) !important;
-                          color: white !important;
-                          opacity: 0.8;
+                          background-color: hsl(var(--muted)) !important;
+                          color: hsl(var(--muted-foreground)) !important;
+                          opacity: 0.9;
                           font-weight: 500;
+                          background-image: repeating-linear-gradient(
+                            45deg,
+                            transparent,
+                            transparent 5px,
+                            rgba(0,0,0,0.1) 5px,
+                            rgba(0,0,0,0.1) 10px
+                          );
                         }
                         .holiday:hover:not([disabled]) {
-                          background-color: hsl(var(--destructive)) !important;
-                          color: white !important;
+                          background-color: hsl(var(--muted)) !important;
+                          color: hsl(var(--muted-foreground)) !important;
                         }
                         .rdp-head_cell {
                           font-weight: 500;
@@ -387,13 +441,25 @@ export default function LunchSelectionPage() {
                         })}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setStep("dates")}
-                    >
-                      Back to Date Selection
-                    </Button>
+
+                    {/* Add buttons for managing selections */}
+                    <div className="flex gap-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setStep("dates")}
+                      >
+                        Back to Date Selection
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={() => handleClearSelections()}
+                        disabled={selectedDates.some(date => !getSelectionForDate(date))}
+                      >
+                        Clear Selections
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

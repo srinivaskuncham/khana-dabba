@@ -29,6 +29,7 @@ export interface IStorage {
   getLunchSelectionsForKid(kidId: number, month: Date): Promise<(LunchSelection & { menuItem: MonthlyMenuItem })[]>;
   createLunchSelection(selection: InsertLunchSelection): Promise<LunchSelection>;
   updateLunchSelection(id: number, selection: Partial<InsertLunchSelection>, userId: number): Promise<LunchSelection | undefined>;
+  deleteLunchSelection(id: number): Promise<boolean>;
 
   // Holiday Management
   getHolidays(startDate: Date, endDate: Date): Promise<Holiday[]>;
@@ -189,6 +190,33 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updated;
+  }
+
+  async deleteLunchSelection(id: number): Promise<boolean> {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // First check if the selection can be deleted (>24h before delivery)
+    const [existingSelection] = await db
+      .select()
+      .from(lunchSelections)
+      .where(
+        and(
+          eq(lunchSelections.id, id),
+          gte(lunchSelections.date, tomorrow)
+        )
+      );
+
+    if (!existingSelection) {
+      return false;
+    }
+
+    const [deleted] = await db
+      .delete(lunchSelections)
+      .where(eq(lunchSelections.id, id))
+      .returning();
+
+    return !!deleted;
   }
 
   // Holiday Management methods
