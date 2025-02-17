@@ -186,8 +186,11 @@ export default function LunchSelectionPage() {
       // Add all Sundays in the current month
       ...Array.from({ length: 31 }, (_, i) => {
         const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
-        return date.getMonth() === currentMonth.getMonth() && isSunday(date) ? date : null;
-      }).filter(Boolean)
+        if (date.getMonth() === currentMonth.getMonth() && isSunday(date)) {
+          return date;
+        }
+        return null;
+      }).filter((date): date is Date => date !== null)
     ]
   };
 
