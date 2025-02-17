@@ -61,6 +61,10 @@ export default function LunchSelectionPage() {
           ],
         });
       });
+      // Also invalidate the base lunch selections query
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
+      });
       toast({
         title: "Success",
         description: "Lunch selections saved successfully",
@@ -106,6 +110,10 @@ export default function LunchSelectionPage() {
       );
     },
     onSuccess: () => {
+      // Invalidate both lunch selections and kids queries
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
+      });
       queryClient.invalidateQueries({ 
         queryKey: ["/api/kids"],
       });
