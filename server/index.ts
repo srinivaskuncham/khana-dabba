@@ -3,8 +3,9 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite,  log } from "./vite";
 import { setupAuth } from "./auth";
+import path from "path";
 
 const app = express();
 
@@ -16,10 +17,10 @@ app.use(helmet({
 // Set trust proxy before other middleware
 app.set('trust proxy', 1);
 
-// Configure CORS for same origin
+// Configure CORS
 app.use(cors({
-  credentials: true,
   origin: true,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -34,7 +35,7 @@ app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Setup logging middleware
+// Request logging
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -58,12 +59,23 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     console.log('Routes registered');
 
+    // In development, use Vite's dev server
     if (process.env.NODE_ENV === "development") {
       await setupVite(app, server);
       console.log('Vite development server setup completed');
     } else {
-      serveStatic(app);
-      console.log('Static file serving setup completed');
+      // In production, serve static files from dist/public
+      const distPath = path.join(process.cwd(), "dist", "public");
+      app.use(express.static(distPath));
+
+      // Serve index.html for client-side routing
+      app.get('*', (req, res) => {
+        // Skip API routes
+        if (req.path.startsWith('/api')) return;
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+
+      console.log('Static file serving setup completed from:', distPath);
     }
 
     // Error handling
