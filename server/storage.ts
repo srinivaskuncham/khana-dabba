@@ -167,6 +167,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(lunchSelections.id, id));
 
     if (!existingSelection) {
+      console.log('No existing selection found for id:', id);
       return undefined;
     }
 
@@ -174,7 +175,14 @@ export class DatabaseStorage implements IStorage {
     const selectionDate = new Date(existingSelection.date);
     selectionDate.setHours(0, 0, 0, 0);
 
+    console.log('Debug date comparison:', {
+      selectionDate: selectionDate.toISOString(),
+      tomorrow: tomorrow.toISOString(),
+      comparison: selectionDate < tomorrow
+    });
+
     if (selectionDate < tomorrow) {
+      console.log('Selection date is before tomorrow, cannot modify');
       return undefined;
     }
 
@@ -194,6 +202,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(lunchSelections.id, id))
         .returning();
 
+      console.log('Successfully updated selection:', updated);
       return updated;
     } catch (error) {
       console.error('Error updating lunch selection:', error);
