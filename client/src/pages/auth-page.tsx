@@ -1,12 +1,13 @@
-import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from "react";
+import { useAuth } from "../hooks/use-auth";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema, InsertUser } from "@shared/schema";
+import { insertUserSchema, InsertUser } from "../../shared/schema";
 import { Redirect } from "wouter";
 
 export default function AuthPage() {
@@ -146,7 +147,6 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
-
       <div className="hidden lg:block flex-1 bg-primary/10 p-8">
         <div className="h-full flex flex-col items-center justify-center text-center space-y-8">
           <h1 className="text-4xl font-bold text-gray-900">
