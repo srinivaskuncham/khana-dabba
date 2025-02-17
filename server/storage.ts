@@ -1,6 +1,6 @@
-import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory } from "@shared/schema";
+import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory, type Holiday, type InsertHoliday } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -30,6 +30,10 @@ export interface IStorage {
   createLunchSelection(selection: InsertLunchSelection): Promise<LunchSelection>;
   updateLunchSelection(id: number, selection: Partial<InsertLunchSelection>, userId: number): Promise<LunchSelection | undefined>;
 
+  // Holiday Management
+  getHolidays(startDate: Date, endDate: Date): Promise<Holiday[]>;
+  addHoliday(holiday: InsertHoliday): Promise<Holiday>;
+
   sessionStore: session.Store;
 }
 
@@ -43,7 +47,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // User methods remain unchanged
+  // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -95,7 +99,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(monthlyMenuItems.isAvailable, true));
   }
 
-  // Kids related methods remain unchanged
+  // Kids related methods
   async getKidsByUserId(userId: number): Promise<Kid[]> {
     return await db.select().from(kids).where(eq(kids.userId, userId));
   }
@@ -185,6 +189,27 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updated;
+  }
+
+  // Holiday Management methods
+  async getHolidays(startDate: Date, endDate: Date): Promise<Holiday[]> {
+    return await db
+      .select()
+      .from(holidays)
+      .where(
+        and(
+          gte(holidays.date, startDate),
+          lte(holidays.date, endDate)
+        )
+      );
+  }
+
+  async addHoliday(holiday: InsertHoliday): Promise<Holiday> {
+    const [created] = await db
+      .insert(holidays)
+      .values(holiday)
+      .returning();
+    return created;
   }
 }
 

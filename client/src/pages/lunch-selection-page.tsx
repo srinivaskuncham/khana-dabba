@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Kid, MonthlyMenuItem, LunchSelection } from "@shared/schema";
+import { Kid, MonthlyMenuItem, LunchSelection, Holiday } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -147,10 +147,17 @@ export default function LunchSelectionPage() {
     return menuItem?.isVegetarian ? "veg-selected" : "non-veg-selected";
   };
 
+  const { data: holidays = [] } = useQuery<Holiday[]>({
+    queryKey: [
+      `/api/holidays/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
+    ],
+    enabled: true,
+  });
+
   const disabledDays = {
     before: tomorrow,
     after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
-    filter: (date: Date) => isSunday(date),
+    dates: holidays.map(h => new Date(h.date))
   };
 
   return (
@@ -286,6 +293,15 @@ export default function LunchSelectionPage() {
                         .non-veg-selected:hover {
                           background-color: hsl(0 72.2% 50.6%);
                         }
+                        .rdp-day_disabled {
+                          opacity: 0.5;
+                          cursor: not-allowed;
+                        }
+                        .rdp-day_disabled.holiday {
+                          background-color: hsl(var(--destructive));
+                          color: white;
+                          opacity: 0.7;
+                        }
                         .rdp-head_cell {
                           font-weight: 500;
                           font-size: 0.875rem;
@@ -310,11 +326,13 @@ export default function LunchSelectionPage() {
                         nonVegSelected: existingSelections
                           .filter(s => !menuItems.find(m => m.id === s.menuItemId)?.isVegetarian)
                           .map(s => new Date(s.date)),
+                        holiday: holidays.map(h => new Date(h.date))
                       }}
                       modifiersClassNames={{
                         selected: "rdp-day_selected",
                         vegSelected: "veg-selected",
                         nonVegSelected: "non-veg-selected",
+                        holiday: "holiday"
                       }}
                       className="border rounded-lg p-4"
                     />

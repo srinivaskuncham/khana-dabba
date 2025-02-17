@@ -53,6 +53,13 @@ export const selectionHistory = pgTable("selection_history", {
   changedBy: integer("changed_by").references(() => users.id).notNull(),
 });
 
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   kids: many(kids),
 }));
@@ -101,6 +108,7 @@ export const insertKidSchema = createInsertSchema(kids);
 export const insertMonthlyMenuItemSchema = createInsertSchema(monthlyMenuItems);
 export const insertLunchSelectionSchema = createInsertSchema(lunchSelections);
 export const insertSelectionHistorySchema = createInsertSchema(selectionHistory);
+export const insertHolidaySchema = createInsertSchema(holidays);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertKid = z.infer<typeof insertKidSchema>;
@@ -109,3 +117,5 @@ export type Kid = typeof kids.$inferSelect;
 export type MonthlyMenuItem = typeof monthlyMenuItems.$inferSelect;
 export type LunchSelection = typeof lunchSelections.$inferSelect;
 export type SelectionHistory = typeof selectionHistory.$inferSelect;
+export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
+export type Holiday = typeof holidays.$inferSelect;

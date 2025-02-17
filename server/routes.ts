@@ -201,6 +201,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
+  // Add this endpoint inside registerRoutes function
+  app.get("/api/holidays/:year/:month", async (req, res) => {
+    if (!req.user) return res.sendStatus(401);
+
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    const holidays = await storage.getHolidays(startDate, endDate);
+    res.json(holidays);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
