@@ -7,37 +7,52 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Setup basic error handling for uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 // Setup logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  console.log(`[${new Date().toISOString()}] Incoming request: ${req.method} ${path}`);
+  console.log(`[${new Date().toISOString()}] Starting ${req.method} ${path}`);
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] Response sent: ${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+    console.log(`[${new Date().toISOString()}] Completed ${req.method} ${path} ${res.statusCode} in ${duration}ms`);
   });
 
   next();
 });
 
+let isInitialized = false;
+
 (async () => {
   try {
+    if (isInitialized) {
+      console.log('Server already initialized, skipping...');
+      return;
+    }
+
+    console.log('Starting server initialization...');
+
     // Setup authentication first
+    console.log('Setting up authentication...');
     setupAuth(app);
     console.log('Auth setup completed');
 
     // Then register other routes
+    console.log('Registering routes...');
     const server = await registerRoutes(app);
-    console.log('Routes registered');
+    console.log('Routes registered successfully');
 
-    // Setup Vite or static serving
+    // Setup Vite only in development
     if (app.get("env") === "development") {
+      console.log('Setting up Vite development server...');
       await setupVite(app, server);
       console.log('Vite development server setup completed');
-    } else {
-      serveStatic(app);
-      console.log('Static file serving setup completed');
     }
 
     // Error handling middleware
@@ -49,13 +64,18 @@ app.use((req, res, next) => {
     });
 
     // Start server
-    const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => {
-      console.log(`Server started on port ${PORT}`);
-      log(`serving on port ${PORT}`);
+    const PORT = process.env.PORT || 3000;
+    const HOST = '0.0.0.0';
+    console.log(`Attempting to start server on ${HOST}:${PORT}...`);
+
+    server.listen(PORT, HOST, () => {
+      console.log(`Server started successfully on ${HOST}:${PORT}`);
+      log(`Server running at http://${HOST}:${PORT}`);
     });
+
+    isInitialized = true;
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('Failed to start server:', error instanceof Error ? error.stack : error);
     process.exit(1);
   }
 })();

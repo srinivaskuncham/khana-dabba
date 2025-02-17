@@ -6,8 +6,6 @@ import { insertKidSchema, insertUserSchema, insertLunchSelectionSchema } from "@
 import { ZodError } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  setupAuth(app);
-
   // Monthly Menu endpoints
   app.get("/api/menu/:year/:month", async (req, res) => {
     if (!req.user) return res.sendStatus(401);
