@@ -242,6 +242,12 @@ export class DatabaseStorage implements IStorage {
     }
 
     try {
+      // First delete any history records
+      await db
+        .delete(selectionHistory)
+        .where(eq(selectionHistory.selectionId, id));
+
+      // Then delete the lunch selection
       const [deleted] = await db
         .delete(lunchSelections)
         .where(eq(lunchSelections.id, id))
