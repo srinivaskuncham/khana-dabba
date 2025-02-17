@@ -5,7 +5,8 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  if (!req.user?.isAdmin) {
+  const user = req.user;
+  if (!user || !user.isAdmin) {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
@@ -14,10 +15,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 // Middleware to check if user is admin without blocking
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated() && req.user?.isAdmin) {
-    res.locals.isAdmin = true;
-  } else {
-    res.locals.isAdmin = false;
-  }
+  const user = req.user;
+  res.locals.isAdmin = !!(req.isAuthenticated() && user?.isAdmin);
   next();
 }
