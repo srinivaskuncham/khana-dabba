@@ -39,14 +39,6 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     console.log('Routes registered');
 
-    // Error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      console.error('Server error:', err);
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-    });
-
     // Setup Vite or static serving
     if (app.get("env") === "development") {
       await setupVite(app, server);
@@ -56,10 +48,18 @@ app.use((req, res, next) => {
       console.log('Static file serving setup completed');
     }
 
+    // Error handling middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Server error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
+
     // Start server
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server started on port ${PORT}`);
       log(`serving on port ${PORT}`);
     });
   } catch (error) {
