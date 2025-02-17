@@ -8,9 +8,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, InsertUser } from "@shared/schema";
 import { Redirect } from "wouter";
+import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation } = useAuth();
 
   const loginForm = useForm({
     defaultValues: {
@@ -31,6 +32,16 @@ export default function AuthPage() {
     },
   });
 
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Only redirect if we have confirmed there is a user
   if (user) {
     return <Redirect to="/" />;
   }
@@ -78,6 +89,9 @@ export default function AuthPage() {
                     className="w-full"
                     disabled={loginMutation.isPending}
                   >
+                    {loginMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
                     Login
                   </Button>
                 </form>
@@ -138,6 +152,9 @@ export default function AuthPage() {
                     className="w-full"
                     disabled={registerMutation.isPending}
                   >
+                    {registerMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
                     Register
                   </Button>
                 </form>
@@ -156,11 +173,6 @@ export default function AuthPage() {
             Your one-stop destination for delicious homestyle Indian meals,
             delivered right to your doorstep.
           </p>
-          <img
-            src="https://images.unsplash.com/photo-1498837167922-ddd27525d352"
-            alt="Delicious Food"
-            className="rounded-lg shadow-xl max-w-md"
-          />
         </div>
       </div>
     </div>
