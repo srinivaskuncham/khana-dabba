@@ -366,29 +366,37 @@ export default function LunchSelectionPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex justify-between items-center flex-wrap gap-2">
-                  <span>{step === "dates" ? "Select Dates" : "Choose Menu Items"}</span>
-                  <div className="flex gap-2 items-center">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="hidden sm:flex items-center px-2 text-sm">
-                      {format(currentMonth, "MMMM yyyy")}
-                    </span>
-                    <span className="sm:hidden flex items-center px-2 text-sm">
-                      {format(currentMonth, "MMM yy")}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <span>
+                    {step === "dates" ? (
+                      <>
+                        <span>Select Dates</span>
+                        <div className="flex gap-2 items-center ml-4">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <span className="hidden sm:flex items-center px-2 text-sm">
+                            {format(currentMonth, "MMMM yyyy")}
+                          </span>
+                          <span className="sm:hidden flex items-center px-2 text-sm">
+                            {format(currentMonth, "MMM yy")}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      "Choose Menu Items"
+                    )}
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
