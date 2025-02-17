@@ -12,6 +12,7 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  console.log(`API Request: ${method} ${url}`);
   const res = await fetch(url, {
     method,
     headers: {
@@ -33,6 +34,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    console.log(`Query Request: ${queryKey[0]}`);
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
       headers: {
@@ -41,6 +43,7 @@ export const getQueryFn: <T>(options: {
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      console.log('Unauthorized request, returning null');
       return null;
     }
 
