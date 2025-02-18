@@ -15,8 +15,6 @@ type AuthContextType = {
   registerMutation: ReturnType<typeof useRegisterMutation>;
 };
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
 function useLoginMutation() {
   const { toast } = useToast();
   return useMutation({
@@ -110,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useAuth() {
   const context = useContext(AuthContext);

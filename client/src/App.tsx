@@ -5,7 +5,9 @@ import { AuthProvider } from "./hooks/use-auth";
 import { Toaster } from "@/components/ui/toaster";
 import AuthPage from "@/pages/auth-page";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { Redirect } from "wouter";
 
+// Landing page that redirects to auth if not logged in
 function HomePage() {
   return (
     <div className="p-8">
@@ -23,7 +25,7 @@ export default function App() {
           <Route path="/auth" component={AuthPage} />
           <ProtectedRoute path="/" component={HomePage} />
           <Route>
-            <div>404 - Not Found</div>
+            <Redirect to="/auth" />
           </Route>
         </Switch>
         <Toaster />

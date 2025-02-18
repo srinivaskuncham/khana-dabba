@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const { loginMutation, user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const form = useForm({
     defaultValues: {
@@ -29,6 +31,11 @@ export default function AuthPage() {
       setLocation("/");
     } catch (error) {
       console.error("Login failed:", error);
+      toast({
+        title: "Login failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
@@ -45,7 +52,7 @@ export default function AuthPage() {
               <Input
                 id="username"
                 type="text"
-                {...form.register("username")}
+                {...form.register("username", { required: true })}
                 placeholder="Enter your username"
               />
             </div>
@@ -54,7 +61,7 @@ export default function AuthPage() {
               <Input
                 id="password"
                 type="password"
-                {...form.register("password")}
+                {...form.register("password", { required: true })}
                 placeholder="Enter your password"
               />
             </div>
