@@ -19,8 +19,8 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Switch>
-          <Route path="/auth" component={AuthPage} />
-          <Route path="/" component={HomePage} />
+          <Route path="/" component={AuthPage} />
+          <Route path="/home" component={HomePage} />
         </Switch>
         <Toaster />
       </AuthProvider>
