@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -37,30 +38,50 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    log("Starting server initialization...");
+    const server = await registerRoutes(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    console.error('Server Error:', err);
-  });
+      res.status(status).json({ message });
+      console.error('Server Error:', err);
+    });
 
-  // Setup vite in development and static serving in production
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Setup vite in development and static serving in production
+    if (app.get("env") === "development") {
+      log("Setting up development server with Vite...");
+      await setupVite(app, server);
+    } else {
+      log("Setting up production static serving...");
+      serveStatic(app);
+    }
+
+    // Use Replit's PORT if available, otherwise fallback to 5000
+    const PORT = Number(process.env.PORT || 5000);
+    const HOST = "0.0.0.0";
+
+    // Handle port in use error gracefully
+    server.on('error', (e: any) => {
+      if (e.code === 'EADDRINUSE') {
+        log(`Port ${PORT} is in use. Please ensure no other server is running.`);
+        process.exit(1);
+      } else {
+        console.error('Server error:', e);
+        process.exit(1);
+      }
+    });
+
+    // Bind to 0.0.0.0 for Replit hosting
+    server.listen(PORT, HOST, () => {
+      log(`🚀 Server running in ${app.get("env")} mode at http://${HOST}:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
-
-  // Use Replit's PORT if available, otherwise fallback to 5000
-  const PORT = Number(process.env.PORT || 5000);
-
-  // Bind to 0.0.0.0 for Replit hosting
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`Server running in ${app.get("env")} mode on port ${PORT}`);
-  });
 })().catch(error => {
   console.error('Failed to start server:', error);
   process.exit(1);
