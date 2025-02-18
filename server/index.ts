@@ -2,6 +2,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Ensure NODE_ENV is set
+process.env.NODE_ENV = process.env.NODE_ENV || "development";
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -59,30 +62,16 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Use dynamic port assignment with fallback
-    const PORT = Number(process.env.PORT || 3000);
+    const PORT = 5000;  // Explicitly set port to 5000
     const HOST = "0.0.0.0";
 
-    // Handle port in use error gracefully
-    server.on('error', (e: any) => {
-      if (e.code === 'EADDRINUSE') {
-        // Try another port
-        const newPort = PORT + 1;
-        log(`Port ${PORT} is in use, attempting to use port ${newPort}...`);
-        server.listen(newPort, HOST);
-      } else {
-        console.error('Server error:', e);
-        process.exit(1);
-      }
-    });
-
-    // Bind to 0.0.0.0 for Replit hosting
     server.listen(PORT, HOST, () => {
-      log(`🚀 Server running in ${app.get("env")} mode at http://${HOST}:${PORT}`);
+      log(`🚀 Server running in ${process.env.NODE_ENV} mode at http://${HOST}:${PORT}`);
       log(`Environment: ${process.env.NODE_ENV}`);
       log(`Port: ${PORT}`);
       log(`Host: ${HOST}`);
     });
+
   } catch (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
