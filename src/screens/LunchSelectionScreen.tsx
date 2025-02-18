@@ -30,16 +30,6 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'LunchSelection'>;
 
-type CreateSelectionData = {
-  date: Date;
-  menuItemId: number;
-};
-
-type UpdateSelectionData = {
-  id: number;
-  menuItemId: number;
-};
-
 export default function LunchSelectionScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const theme = useTheme();
@@ -48,13 +38,15 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
   const [selectedKidId] = useState(route.params?.kidId);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
+  // Query for menu items
   const { data: menuItems = [] } = useQuery<MonthlyMenuItem[]>({
     queryKey: [
       `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
   });
 
-  const { data: existingSelections = [] } = useQuery<LunchSelection[]>({
+  // Query for existing selections
+  const { data: existingSelections = [] } = useQuery<(LunchSelection & { menuItem: MonthlyMenuItem })[]>({
     queryKey: [
       `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
         currentMonth.getMonth() + 1
@@ -63,13 +55,14 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     enabled: !!selectedKidId,
   });
 
+  // Query for holidays
   const { data: holidays = [] } = useQuery<Holiday[]>({
     queryKey: [
       `/api/holidays/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
   });
 
-  const createSelectionMutation = useMutation<LunchSelection, Error, CreateSelectionData>({
+  const createSelectionMutation = useMutation<LunchSelection, Error, { date: Date; menuItemId: number }>({
     mutationFn: async ({ date, menuItemId }) => {
       if (!selectedKidId) throw new Error('No kid selected');
       const res = await fetch(`${API_URL}/api/kids/${selectedKidId}/lunch-selections`, {
@@ -105,7 +98,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     },
   });
 
-  const updateSelectionMutation = useMutation<LunchSelection, Error, UpdateSelectionData>({
+  const updateSelectionMutation = useMutation<LunchSelection, Error, { id: number; menuItemId: number }>({
     mutationFn: async ({ id, menuItemId }) => {
       if (!selectedKidId) throw new Error('No kid selected');
       const res = await fetch(
@@ -450,6 +443,16 @@ const styles = StyleSheet.create({
   menuContainer: {
     gap: 16,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  resetButton: {
+    backgroundColor: '#ef4444',
+  },
   dateCard: {
     padding: 12,
     borderRadius: 8,
@@ -476,17 +479,6 @@ const styles = StyleSheet.create({
   selectionText: {
     marginTop: 4,
     color: '#059669',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  resetButton: {
-    backgroundColor: '#ef4444',
   },
   menuItem: {
     flexDirection: 'row',
