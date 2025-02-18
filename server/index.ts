@@ -59,15 +59,17 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Use Replit's PORT if available, otherwise fallback to 5000
-    const PORT = Number(process.env.PORT || 5000);
+    // Use dynamic port assignment with fallback
+    const PORT = Number(process.env.PORT || 3000);
     const HOST = "0.0.0.0";
 
     // Handle port in use error gracefully
     server.on('error', (e: any) => {
       if (e.code === 'EADDRINUSE') {
-        log(`Port ${PORT} is in use. Please ensure no other server is running.`);
-        process.exit(1);
+        // Try another port
+        const newPort = PORT + 1;
+        log(`Port ${PORT} is in use, attempting to use port ${newPort}...`);
+        server.listen(newPort, HOST);
       } else {
         console.error('Server error:', e);
         process.exit(1);
@@ -77,7 +79,6 @@ app.use((req, res, next) => {
     // Bind to 0.0.0.0 for Replit hosting
     server.listen(PORT, HOST, () => {
       log(`🚀 Server running in ${app.get("env")} mode at http://${HOST}:${PORT}`);
-      // Add additional logging for debugging
       log(`Environment: ${process.env.NODE_ENV}`);
       log(`Port: ${PORT}`);
       log(`Host: ${HOST}`);
