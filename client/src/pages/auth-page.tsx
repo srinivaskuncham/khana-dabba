@@ -24,11 +24,12 @@ export default function AuthPage() {
   }
 
   const onSubmit = async (data: { username: string; password: string }) => {
-    await loginMutation.mutateAsync(data, {
-      onSuccess: () => {
-        setLocation("/");
-      },
-    });
+    try {
+      await loginMutation.mutateAsync(data);
+      setLocation("/");
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
   return (
@@ -38,10 +39,7 @@ export default function AuthPage() {
           <CardTitle className="text-2xl text-center">Khana Dabba</CardTitle>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -63,7 +61,7 @@ export default function AuthPage() {
               className="w-full"
               disabled={loginMutation.isPending}
             >
-              {loginMutation.isPending ? "Loading..." : "Login"}
+              {loginMutation.isPending ? "Logging in..." : "Login"}
             </Button>
           </form>
         </CardContent>
