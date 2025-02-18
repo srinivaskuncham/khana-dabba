@@ -17,7 +17,7 @@ export default function AuthPage() {
     },
   });
 
-  // Redirect if already logged in
+  // If already logged in, redirect to home
   if (user) {
     setLocation("/");
     return null;
@@ -36,7 +36,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Khana Dabba</CardTitle>
+          <CardTitle className="text-2xl text-center">Welcome to Khana Dabba</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -46,6 +46,7 @@ export default function AuthPage() {
                 id="username"
                 type="text"
                 {...form.register("username")}
+                placeholder="Enter your username"
               />
             </div>
             <div className="space-y-2">
@@ -54,6 +55,7 @@ export default function AuthPage() {
                 id="password"
                 type="password"
                 {...form.register("password")}
+                placeholder="Enter your password"
               />
             </div>
             <Button
