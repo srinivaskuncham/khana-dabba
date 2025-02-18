@@ -8,9 +8,7 @@ import {
   Text,
   Card,
   Button,
-  Avatar,
   useTheme,
-  SegmentedButtons,
   Appbar,
 } from 'react-native-paper';
 import { Calendar } from 'react-native-calendars';
@@ -49,10 +47,6 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
   const [step, setStep] = useState('dates');
   const [selectedKidId] = useState(route.params?.kidId);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-
-  const { data: kids = [] } = useQuery({
-    queryKey: ['/api/kids'],
-  });
 
   const { data: menuItems = [] } = useQuery<MonthlyMenuItem[]>({
     queryKey: [
@@ -240,7 +234,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
       const date = format(new Date(selection.date), 'yyyy-MM-dd');
       acc[date] = {
         selected: true,
-        selectedColor: selection.menuItem.isVegetarian
+        selectedColor: selection.menuItem?.isVegetarian
           ? '#15803d'  // green-700
           : '#dc2626', // red-600
       };
@@ -289,7 +283,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
                 <Card.Content>
                   <Calendar
                     current={currentMonth.toISOString()}
-                    minDate={tomorrow.toISOString()}
+                    minDate={addDays(new Date(), 1).toISOString()}
                     maxDate={new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).toISOString()}
                     onDayPress={handleDayPress}
                     markedDates={markedDates}
@@ -350,7 +344,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
                           key={date.toISOString()}
                           style={[
                             styles.dateCard,
-                            existingSelection?.menuItem.isVegetarian
+                            existingSelection?.menuItem?.isVegetarian
                               ? styles.vegSelected
                               : existingSelection
                               ? styles.nonVegSelected
@@ -362,7 +356,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
                           </Text>
                           {existingSelection && (
                             <Text style={styles.selectionText}>
-                              Current choice: {existingSelection.menuItem.name}
+                              Current choice: {existingSelection.menuItem?.name}
                             </Text>
                           )}
                         </View>
@@ -444,26 +438,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  kidsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  kidButton: {
+  selectionContainer: {
     flex: 1,
-    minWidth: 100,
-    maxWidth: 150,
-    marginBottom: 8,
-  },
-  kidButtonContent: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: 8,
-  },
-  kidName: {
-    marginTop: 8,
-    textAlign: 'center',
   },
   card: {
     marginBottom: 16,
