@@ -5,7 +5,6 @@ import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
 import { setupAuth } from "./auth";
-import path from "path";
 
 const app = express();
 
@@ -49,7 +48,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Setup authentication
+    // Setup authentication before routes
     setupAuth(app);
     console.log('Auth setup completed');
 
