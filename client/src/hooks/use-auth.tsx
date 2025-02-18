@@ -21,8 +21,11 @@ function useLoginMutation() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: async (data: LoginData) => {
+      console.log("Attempting login for:", data.username);
       const res = await apiRequest("POST", "/api/login", data);
-      return res.json();
+      const user = await res.json();
+      console.log("Login response:", user);
+      return user;
     },
     onSuccess: (user) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -32,8 +35,9 @@ function useLoginMutation() {
       });
     },
     onError: (error: Error) => {
+      console.error("Login error:", error);
       toast({
-        title: "Error",
+        title: "Login failed",
         description: error.message,
         variant: "destructive",
       });
@@ -57,7 +61,7 @@ function useRegisterMutation() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: "Registration failed",
         description: error.message,
         variant: "destructive",
       });

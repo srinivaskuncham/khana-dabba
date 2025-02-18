@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema"; // Adjust path as needed
+import { User as SelectUser } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -29,14 +29,15 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  // Simplified session settings for development
+  // Very basic session setup for demo
   const sessionSettings: session.SessionOptions = {
-    secret: "development-secret-key",
+    secret: "demo-secret-key",
     resave: false,
     saveUninitialized: true,
     cookie: {
       secure: false,
-      sameSite: 'lax'
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   };
 
@@ -47,29 +48,49 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Login attempt for:", username);
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        if (!user) {
+          console.log("User not found");
           return done(null, false);
         }
+        const isValid = await comparePasswords(password, user.password);
+        if (!isValid) {
+          console.log("Invalid password");
+          return done(null, false);
+        }
+        console.log("Login successful");
         return done(null, user);
       } catch (error) {
+        console.error("Login error:", error);
         return done(error);
       }
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log("Serializing user:", user.id);
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("Deserializing user:", id);
       const user = await storage.getUser(id);
+      if (!user) {
+        console.log("User not found in deserialization");
+        return done(null, false);
+      }
       done(null, user);
     } catch (error) {
+      console.error("Deserialization error:", error);
       done(error);
     }
   });
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      console.log("Registration attempt:", req.body.username);
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
@@ -89,8 +110,17 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -101,6 +131,7 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log("Auth check:", req.isAuthenticated());
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
   });
