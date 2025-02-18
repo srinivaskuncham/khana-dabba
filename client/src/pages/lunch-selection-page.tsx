@@ -116,8 +116,13 @@ export default function LunchSelectionPage() {
       );
     },
     onSuccess: () => {
+      // Invalidate the specific month's query
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
+        queryKey: [
+          `/api/kids/${selectedKidId}/lunch-selections/${currentMonth.getFullYear()}/${
+            currentMonth.getMonth() + 1
+          }`,
+        ],
       });
       toast({
         title: "Success",
