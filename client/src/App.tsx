@@ -18,12 +18,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="min-h-screen bg-background">
-          <Switch>
-            <Route path="/" component={AuthPage} />
-            <Route path="/home" component={HomePage} />
-          </Switch>
-        </div>
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <Route path="/" component={HomePage} />
+        </Switch>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

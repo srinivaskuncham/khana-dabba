@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { useLocation } from "wouter";
 
 export default function AuthPage() {
-  const { loginMutation } = useAuth();
+  const { loginMutation, user } = useAuth();
   const [, setLocation] = useLocation();
 
   const form = useForm({
@@ -17,10 +17,16 @@ export default function AuthPage() {
     },
   });
 
+  // Redirect if already logged in
+  if (user) {
+    setLocation("/");
+    return null;
+  }
+
   const onSubmit = async (data: { username: string; password: string }) => {
     try {
       await loginMutation.mutateAsync(data);
-      setLocation("/home");
+      setLocation("/");
     } catch (error) {
       console.error("Login failed:", error);
     }
@@ -51,7 +57,7 @@ export default function AuthPage() {
               />
             </div>
             <Button
-              type="submit"  
+              type="submit"
               className="w-full"
               disabled={loginMutation.isPending}
             >
