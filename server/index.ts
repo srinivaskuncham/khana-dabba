@@ -14,9 +14,8 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-app.set('trust proxy', 1);
 
-// Configure CORS
+// Configure CORS for development
 app.use(cors({
   origin: true,
   credentials: true,
@@ -57,7 +56,7 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     console.log('Routes registered');
 
-    // Development mode: use Vite's dev server
+    // Setup Vite's dev server
     await setupVite(app, server);
     console.log('Vite development server setup completed');
 
