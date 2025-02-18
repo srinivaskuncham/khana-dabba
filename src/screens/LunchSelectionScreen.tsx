@@ -47,7 +47,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [step, setStep] = useState('dates');
-  const [selectedKidId, setSelectedKidId] = useState(route.params?.kidId);
+  const [selectedKidId] = useState(route.params?.kidId);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: kids = [] } = useQuery({
@@ -281,29 +281,6 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
       </Appbar.Header>
 
       <ScrollView style={styles.content}>
-        <View style={styles.kidsGrid}>
-          {kids.map((kid) => (
-            <Button
-              key={kid.id}
-              mode={selectedKidId === kid.id ? 'contained' : 'outlined'}
-              onPress={() => setSelectedKidId(kid.id)}
-              style={styles.kidButton}
-              contentStyle={styles.kidButtonContent}
-            >
-              <Avatar.Image
-                size={48}
-                source={{
-                  uri: kid.profilePicture ||
-                    `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${kid.name}&backgroundColor=b6e3f4,c0aede,d1d4f9`,
-                }}
-              />
-              <Text style={styles.kidName} numberOfLines={1}>
-                {kid.name}
-              </Text>
-            </Button>
-          ))}
-        </View>
-
         {selectedKidId ? (
           <View style={styles.selectionContainer}>
             {step === 'dates' ? (
@@ -317,10 +294,13 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
                     onDayPress={handleDayPress}
                     markedDates={markedDates}
                     disableAllTouchEventsForDisabledDays
+                    hideExtraDays
                     theme={{
                       selectedDayBackgroundColor: theme.colors.primary,
                       todayTextColor: theme.colors.primary,
                       arrowColor: theme.colors.primary,
+                      monthTextColor: 'transparent',
+                      textMonthFontSize: 0,
                     }}
                   />
                   <Button
@@ -335,6 +315,31 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
               </Card>
             ) : (
               <View style={styles.menuContainer}>
+                <Card style={styles.card}>
+                  <Card.Title title="Choose Menu Items" />
+                  <Card.Content>
+                    <View style={styles.buttonContainer}>
+                      <Button
+                        mode="outlined"
+                        onPress={() => setStep('dates')}
+                        style={styles.actionButton}
+                      >
+                        Back to Dates
+                      </Button>
+                      <Button
+                        mode="contained"
+                        onPress={handleClearSelections}
+                        disabled={selectedDates.every(
+                          (date) => !getSelectionForDate(date),
+                        )}
+                        style={[styles.actionButton, styles.resetButton]}
+                      >
+                        Reset Selections
+                      </Button>
+                    </View>
+                  </Card.Content>
+                </Card>
+
                 <Card style={styles.card}>
                   <Card.Title title="Selected Dates" />
                   <Card.Content>
@@ -363,25 +368,6 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
                         </View>
                       );
                     })}
-                    <View style={styles.buttonContainer}>
-                      <Button
-                        mode="outlined"
-                        onPress={() => setStep('dates')}
-                        style={styles.actionButton}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        mode="contained"
-                        onPress={handleClearSelections}
-                        disabled={selectedDates.every(
-                          (date) => !getSelectionForDate(date),
-                        )}
-                        style={[styles.actionButton, styles.resetButton]}
-                      >
-                        Reset
-                      </Button>
-                    </View>
                   </Card.Content>
                 </Card>
 
@@ -439,7 +425,7 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
           <Card style={styles.card}>
             <Card.Content>
               <Text style={styles.placeholderText}>
-                Please select a kid to view and manage their lunch selections
+                Please go back and select a kid to manage their lunch selections
               </Text>
             </Card.Content>
           </Card>
