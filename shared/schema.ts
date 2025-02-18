@@ -9,9 +9,8 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  gender: text("gender"),
-  profilePicture: text("profile_picture"),
-  isAdmin: boolean("is_admin").notNull().default(false), 
+  gender: text("gender"),  // Add gender field
+  profilePicture: text("profile_picture"),  // Add profile picture URL
 });
 
 export const kids = pgTable("kids", {
@@ -20,8 +19,8 @@ export const kids = pgTable("kids", {
   grade: text("grade").notNull(),
   school: text("school").notNull(),
   rollNumber: text("roll_number").notNull(),
-  gender: text("gender"),
-  profilePicture: text("profile_picture"),
+  gender: text("gender"),  // Add gender field
+  profilePicture: text("profile_picture"),  // Add profile picture URL
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
@@ -104,16 +103,7 @@ export const selectionHistoryRelations = relations(selectionHistory, ({ one }) =
   }),
 }));
 
-export const insertUserSchema = createInsertSchema(users).extend({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
-});
-
-export const insertAdminSchema = insertUserSchema.extend({
-  isAdmin: z.literal(true),
-});
-
+export const insertUserSchema = createInsertSchema(users);
 export const insertKidSchema = createInsertSchema(kids);
 export const insertMonthlyMenuItemSchema = createInsertSchema(monthlyMenuItems);
 export const insertLunchSelectionSchema = createInsertSchema(lunchSelections);
@@ -121,7 +111,7 @@ export const insertSelectionHistorySchema = createInsertSchema(selectionHistory)
 export const insertHolidaySchema = createInsertSchema(holidays);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type InsertAdmin = z.infer<typeof insertAdminSchema>;
+export type InsertKid = z.infer<typeof insertKidSchema>;
 export type User = typeof users.$inferSelect;
 export type Kid = typeof kids.$inferSelect;
 export type MonthlyMenuItem = typeof monthlyMenuItems.$inferSelect;

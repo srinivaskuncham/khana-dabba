@@ -1,4 +1,4 @@
-import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, holidays, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory, type Holiday, type InsertHoliday } from "../shared/schema";
+import { users, monthlyMenuItems, kids, lunchSelections, selectionHistory, holidays, type User, type MonthlyMenuItem, type InsertUser, type Kid, type InsertKid, type LunchSelection, type InsertLunchSelection, type SelectionHistory, type Holiday, type InsertHoliday } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, gte, lte } from "drizzle-orm";
 import session from "express-session";
@@ -8,25 +8,34 @@ import { pool } from "./db";
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
-  sessionStore: session.Store;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(insertUser: InsertUser): Promise<User>;
-  updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+
+  // Monthly Menu Items
   getMonthlyMenuItems(month: Date): Promise<MonthlyMenuItem[]>;
   getVegMenuItems(month: Date): Promise<MonthlyMenuItem[]>;
   getNonVegMenuItems(month: Date): Promise<MonthlyMenuItem[]>;
+
+  // Kids
   getKidsByUserId(userId: number): Promise<Kid[]>;
   getKid(kidId: number): Promise<Kid | undefined>;
-  createKid(insertKid: InsertKid): Promise<Kid>;
-  updateKid(kidId: number, updateData: Partial<InsertKid>): Promise<Kid | undefined>;
+  createKid(kid: InsertKid): Promise<Kid>;
+  updateKid(kidId: number, kid: Partial<InsertKid>): Promise<Kid | undefined>;
   deleteKid(kidId: number): Promise<boolean>;
+
+  // Lunch Selections
   getLunchSelectionsForKid(kidId: number, month: Date): Promise<(LunchSelection & { menuItem: MonthlyMenuItem })[]>;
   createLunchSelection(selection: InsertLunchSelection): Promise<LunchSelection>;
   updateLunchSelection(id: number, selection: Partial<InsertLunchSelection>, userId: number): Promise<LunchSelection | undefined>;
   deleteLunchSelection(id: number): Promise<boolean>;
+
+  // Holiday Management
   getHolidays(startDate: Date, endDate: Date): Promise<Holiday[]>;
   addHoliday(holiday: InsertHoliday): Promise<Holiday>;
+
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -39,34 +48,20 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // User methods
   async getUser(id: number): Promise<User | undefined> {
-    try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
-      return user;
-    } catch (error) {
-      console.error('Error getting user:', error);
-      return undefined;
-    }
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
-      return user;
-    } catch (error) {
-      console.error('Error getting user by username:', error);
-      return undefined;
-    }
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    try {
-      const [user] = await db.insert(users).values(insertUser).returning();
-      return user;
-    } catch (error) {
-      console.error('Error creating user:', error);
-      throw error;
-    }
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
   }
 
   async updateUser(id: number, updateData: Partial<InsertUser>): Promise<User | undefined> {
@@ -78,6 +73,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  // Monthly Menu Items methods
   async getMonthlyMenuItems(month: Date): Promise<MonthlyMenuItem[]> {
     return await db
       .select()
@@ -104,6 +100,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(monthlyMenuItems.isAvailable, true));
   }
 
+  // Kids related methods
   async getKidsByUserId(userId: number): Promise<Kid[]> {
     return await db.select().from(kids).where(eq(kids.userId, userId));
   }
@@ -132,6 +129,7 @@ export class DatabaseStorage implements IStorage {
     return !!deleted;
   }
 
+  // Lunch Selections methods
   async getLunchSelectionsForKid(kidId: number, month: Date): Promise<(LunchSelection & { menuItem: MonthlyMenuItem })[]> {
     return await db
       .select({
@@ -162,6 +160,7 @@ export class DatabaseStorage implements IStorage {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
 
+    // First check if the selection can be modified (>24h before delivery)
     const [existingSelection] = await db
       .select()
       .from(lunchSelections)
@@ -172,6 +171,7 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
 
+    // Convert the date string to Date object for comparison
     const selectionDate = new Date(existingSelection.date);
     selectionDate.setHours(0, 0, 0, 0);
 
@@ -187,6 +187,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     try {
+      // Create history record
       await db.insert(selectionHistory).values({
         selectionId: id,
         oldMenuItemId: existingSelection.menuItemId,
@@ -194,6 +195,7 @@ export class DatabaseStorage implements IStorage {
         changedBy: userId,
       });
 
+      // Update the selection
       const [updated] = await db
         .update(lunchSelections)
         .set({ ...selection, modifiedAt: new Date() })
@@ -213,6 +215,7 @@ export class DatabaseStorage implements IStorage {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
 
+    // First check if the selection can be deleted (>24h before delivery)
     const [existingSelection] = await db
       .select()
       .from(lunchSelections)
@@ -223,6 +226,7 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
 
+    // Convert the date string to Date object for comparison
     const selectionDate = new Date(existingSelection.date);
     selectionDate.setHours(0, 0, 0, 0);
 
@@ -238,10 +242,12 @@ export class DatabaseStorage implements IStorage {
     }
 
     try {
+      // First delete any history records
       await db
         .delete(selectionHistory)
         .where(eq(selectionHistory.selectionId, id));
 
+      // Then delete the lunch selection
       const [deleted] = await db
         .delete(lunchSelections)
         .where(eq(lunchSelections.id, id))
@@ -254,6 +260,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Holiday Management methods
   async getHolidays(startDate: Date, endDate: Date): Promise<Holiday[]> {
     return await db
       .select()

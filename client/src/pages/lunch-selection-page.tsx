@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Check, CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { DayPicker } from "react-day-picker";
 import { format, isSunday, isAfter, addDays, isSameDay, subMonths, addMonths } from "date-fns";
@@ -16,12 +16,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function LunchSelectionPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [location] = useLocation();
-  const urlParams = new URLSearchParams(location.split('?')[1]);
-  const kidIdFromUrl = parseInt(urlParams.get('kidId') || '0');
-  const [selectedKidId, setSelectedKidId] = useState<number>(kidIdFromUrl);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [step, setStep] = useState<"dates" | "menu">("dates");
+  const [selectedKidId, setSelectedKidId] = useState<number | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const { data: kids = [] } = useQuery<Kid[]>({
@@ -32,7 +29,7 @@ export default function LunchSelectionPage() {
     queryKey: [
       `/api/menu/${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}`,
     ],
-    enabled: true,
+    enabled: true, // Ensure this query always runs
   });
 
   const { data: existingSelections = [] } = useQuery<(LunchSelection & { menuItem: MonthlyMenuItem })[]>({
@@ -54,6 +51,7 @@ export default function LunchSelectionPage() {
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate queries for both current and next month if selections span months
       const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
       for (const monthKey of months) {
         const [year, month] = monthKey.split('/');
@@ -63,6 +61,7 @@ export default function LunchSelectionPage() {
           ],
         });
       }
+      // Also invalidate the base lunch selections query
       queryClient.invalidateQueries({ 
         queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
       });
@@ -91,6 +90,7 @@ export default function LunchSelectionPage() {
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate queries for both current and next month if selections span months
       const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
       for (const monthKey of months) {
         const [year, month] = monthKey.split('/');
@@ -100,6 +100,7 @@ export default function LunchSelectionPage() {
           ],
         });
       }
+      // Also invalidate the base lunch selections query
       queryClient.invalidateQueries({ 
         queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
       });
@@ -117,6 +118,7 @@ export default function LunchSelectionPage() {
     },
   });
 
+  // Update the clearSelectionMutation implementation
   const clearSelectionMutation = useMutation({
     mutationFn: async ({ id }: { id: number }) => {
       if (!selectedKidId) throw new Error("No kid selected");
@@ -126,6 +128,7 @@ export default function LunchSelectionPage() {
       );
     },
     onSuccess: () => {
+      // Invalidate both lunch selections and kids queries
       queryClient.invalidateQueries({ 
         queryKey: [`/api/kids/${selectedKidId}/lunch-selections`],
       });
@@ -137,14 +140,17 @@ export default function LunchSelectionPage() {
 
   const handleSaveSelections = async (menuItemId: number) => {
     try {
+      // Process updates sequentially to avoid race conditions
       for (const date of selectedDates) {
         const existingSelection = getSelectionForDate(date);
         if (existingSelection) {
+          // Update existing selection
           await updateSelectionMutation.mutateAsync({
             id: existingSelection.id,
             menuItemId,
           });
         } else {
+          // Create new selection
           await createSelectionMutation.mutateAsync({ 
             date, 
             menuItemId 
@@ -155,6 +161,7 @@ export default function LunchSelectionPage() {
       setSelectedDates([]);
       setStep("dates");
 
+      // Invalidate all affected months
       const months = new Set(selectedDates.map(date => 
         `${date.getFullYear()}/${date.getMonth() + 1}`
       ));
@@ -191,6 +198,7 @@ export default function LunchSelectionPage() {
     );
   };
 
+  // Add CSS classes for veg and non-veg selections
   const getSelectionClass = (date: Date) => {
     const selection = getSelectionForDate(date);
     if (!selection) return "";
@@ -205,11 +213,13 @@ export default function LunchSelectionPage() {
     enabled: true,
   });
 
+  // Add this effect to reset selected dates when kid changes
   useEffect(() => {
     setSelectedDates([]);
     setStep("dates");
   }, [selectedKidId]);
 
+  // Update the disabledDays logic
   const disabledDays = [
     { before: tomorrow },
     { after: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0) },
@@ -234,6 +244,7 @@ export default function LunchSelectionPage() {
         })
       );
 
+      // Invalidate queries for both current and next month
       const months = new Set(selectedDates.map(date => `${date.getFullYear()}/${date.getMonth() + 1}`));
       [...months].forEach(monthKey => {
         const [year, month] = monthKey.split('/');
@@ -244,6 +255,7 @@ export default function LunchSelectionPage() {
         });
       });
 
+      // Reset the state and show success message
       setSelectedDates([]);
       setStep("dates");
       toast({
@@ -276,127 +288,60 @@ export default function LunchSelectionPage() {
       </header>
 
       <main className="container mx-auto py-4 px-4">
-        {step === "dates" && (
-          <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {kids.map((kid) => (
-              <Button
-                key={kid.id}
-                onClick={() => setSelectedKidId(kid.id)}
-                variant={selectedKidId === kid.id ? "default" : "ghost"}
-                className="h-auto p-2 flex flex-col items-center gap-2"
-              >
-                <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
-                  <AvatarImage 
-                    src={kid.profilePicture || 
-                      `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${kid.name}&backgroundColor=b6e3f4,c0aede,d1d4f9`
-                    } 
-                    alt={kid.name} 
-                  />
-                  <AvatarFallback>
-                    {kid.name.substring(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs sm:text-sm font-medium text-center line-clamp-1">
-                  {kid.name}
-                </span>
-              </Button>
-            ))}
-          </div>
-        )}
-
-        {step === "menu" && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Current Selections</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="space-y-2">
-                    {selectedDates.map((date) => {
-                      const existingSelection = getSelectionForDate(date);
-                      return (
-                        <div
-                          key={date.toISOString()}
-                          className={cn(
-                            "p-3 rounded-lg",
-                            !existingSelection && "bg-gray-50 border border-gray-200",
-                            existingSelection && existingSelection.menuItem.isVegetarian && "bg-green-100 border border-green-300",
-                            existingSelection && !existingSelection.menuItem.isVegetarian && "bg-red-50 border border-red-200"
-                          )}
-                        >
-                          <div className="font-medium">
-                            {format(date, "EEEE, MMMM d, yyyy")}
-                          </div>
-                          {existingSelection && (
-                            <div className="text-sm text-green-600 mt-1">
-                              Current choice: {existingSelection.menuItem.name}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex gap-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setStep("dates")}
-                  >
-                    Back to Date Selection
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1"
-                    onClick={handleClearSelections}
-                    disabled={selectedDates.every(date => !getSelectionForDate(date))}
-                  >
-                    Reset Choices
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {kids.map((kid) => (
+            <Button
+              key={kid.id}
+              onClick={() => setSelectedKidId(kid.id)}
+              variant={selectedKidId === kid.id ? "default" : "ghost"}
+              className="h-auto p-2 flex flex-col items-center gap-2"
+            >
+              <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
+                <AvatarImage 
+                  src={kid.profilePicture || 
+                    `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${kid.name}&backgroundColor=b6e3f4,c0aede,d1d4f9`
+                  } 
+                  alt={kid.name} 
+                />
+                <AvatarFallback>
+                  {kid.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs sm:text-sm font-medium text-center line-clamp-1">
+                {kid.name}
+              </span>
+            </Button>
+          ))}
+        </div>
 
         {selectedKidId ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
+            <Card className="order-2 lg:order-1">
               <CardHeader>
                 <CardTitle className="flex justify-between items-center flex-wrap gap-2">
-                  <span>
-                    {step === "dates" ? (
-                      <>
-                        <span>Select Dates</span>
-                        <div className="flex gap-2 items-center ml-4">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          <span className="hidden sm:flex items-center px-2 text-sm">
-                            {format(currentMonth, "MMMM yyyy")}
-                          </span>
-                          <span className="sm:hidden flex items-center px-2 text-sm">
-                            {format(currentMonth, "MMM yy")}
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      "Choose Menu Items"
-                    )}
-                  </span>
+                  <span>{step === "dates" ? "Select Dates" : "Choose Menu Items"}</span>
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="hidden sm:flex items-center px-2 text-sm">
+                      {format(currentMonth, "MMMM yyyy")}
+                    </span>
+                    <span className="sm:hidden flex items-center px-2 text-sm">
+                      {format(currentMonth, "MMM yy")}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -528,7 +473,57 @@ export default function LunchSelectionPage() {
                       Continue to Menu Selection
                     </Button>
                   </>
-                ) : null}
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-medium mb-4">Selected Dates:</h3>
+                      <div className="space-y-2">
+                        {selectedDates.map((date) => {
+                          const existingSelection = getSelectionForDate(date);
+                          return (
+                            <div
+                              key={date.toISOString()}
+                              className={cn(
+                                "p-3 rounded-lg",
+                                !existingSelection && "bg-gray-50 border border-gray-200",
+                                existingSelection && existingSelection.menuItem.isVegetarian && "bg-green-100 border border-green-300",
+                                existingSelection && !existingSelection.menuItem.isVegetarian && "bg-red-50 border border-red-200"
+                              )}
+                            >
+                              <div className="font-medium">
+                                {format(date, "EEEE, MMMM d, yyyy")}
+                              </div>
+                              {existingSelection && (
+                                <div className="text-sm text-green-600 mt-1">
+                                  Current choice: {existingSelection.menuItem.name}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Add buttons for managing selections */}
+                    <div className="flex gap-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setStep("dates")}
+                      >
+                        Back to Date Selection
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={handleClearSelections}
+                        disabled={selectedDates.every(date => !getSelectionForDate(date))}
+                      >
+                        Reset Choices
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

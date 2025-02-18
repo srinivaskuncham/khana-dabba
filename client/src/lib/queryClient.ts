@@ -7,32 +7,14 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Get the base URL dynamically
-const getBaseUrl = () => {
-  // In development, use the current origin
-  if (process.env.NODE_ENV === 'development') {
-    return window.location.origin;
-  }
-  // In production, could be configured via env var
-  return process.env.VITE_API_URL || window.location.origin;
-};
-
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const baseUrl = getBaseUrl();
-  const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
-  console.log(`API Request: ${method} ${fullUrl}`);
-
-  const res = await fetch(fullUrl, {
+  const res = await fetch(url, {
     method,
-    headers: {
-      ...(data ? { "Content-Type": "application/json" } : {}),
-      // Add Cache-Control header
-      "Cache-Control": "no-cache"
-    },
+    headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -47,21 +29,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const baseUrl = getBaseUrl();
-    const fullUrl = (queryKey[0] as string).startsWith('http') 
-      ? queryKey[0] as string 
-      : `${baseUrl}${queryKey[0]}`;
-
-    console.log(`Query Request: ${fullUrl}`);
-    const res = await fetch(fullUrl, {
+    const res = await fetch(queryKey[0] as string, {
       credentials: "include",
-      headers: {
-        "Cache-Control": "no-cache"
-      }
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      console.log('Unauthorized request, returning null');
       return null;
     }
 

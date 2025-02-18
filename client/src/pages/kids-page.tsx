@@ -38,20 +38,12 @@ export default function KidsPage() {
       school: "",
       rollNumber: "",
       gender: "",
-      profilePicture: "",
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: Omit<Kid, "id" | "userId">) => {
-      const res = await apiRequest("POST", "/api/kids", {
-        ...data,
-        userId: user?.id,
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create kid profile");
-      }
+      const res = await apiRequest("POST", "/api/kids", data);
       return res.json();
     },
     onSuccess: () => {
@@ -63,22 +55,11 @@ export default function KidsPage() {
         description: "Kid profile created successfully",
       });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create kid profile",
-        variant: "destructive",
-      });
-    },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<Kid> }) => {
       const res = await apiRequest("PUT", `/api/kids/${id}`, data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to update kid profile");
-      }
       return res.json();
     },
     onSuccess: () => {
@@ -90,22 +71,11 @@ export default function KidsPage() {
         description: "Kid profile updated successfully",
       });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update kid profile",
-        variant: "destructive",
-      });
-    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/kids/${id}`);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to delete kid profile");
-      }
+      await apiRequest("DELETE", `/api/kids/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/kids"] });
@@ -114,38 +84,20 @@ export default function KidsPage() {
         description: "Kid profile deleted successfully",
       });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete kid profile",
-        variant: "destructive",
-      });
-    },
   });
 
-  const onSubmit = async (data: any) => {
-    try {
-      if (editingKid) {
-        await updateMutation.mutateAsync({ id: editingKid.id, data });
-      } else {
-        await createMutation.mutateAsync(data);
-      }
-    } catch (error) {
-      console.error("Form submission error:", error);
+  const onSubmit = (data: any) => {
+    if (editingKid) {
+      updateMutation.mutate({ id: editingKid.id, data });
+    } else {
+      createMutation.mutate(data);
     }
   };
 
   const handleOpenDialog = (kid?: Kid) => {
     if (kid) {
       setEditingKid(kid);
-      form.reset({
-        name: kid.name,
-        grade: kid.grade,
-        school: kid.school,
-        rollNumber: kid.rollNumber,
-        gender: kid.gender || "",
-        profilePicture: kid.profilePicture || "",
-      });
+      form.reset(kid);
     } else {
       setEditingKid(null);
       form.reset();
@@ -188,38 +140,18 @@ export default function KidsPage() {
               <div>
                 <Label htmlFor="name">Name</Label>
                 <Input id="name" {...form.register("name")} />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.name.message}
-                  </p>
-                )}
               </div>
               <div>
                 <Label htmlFor="grade">Grade</Label>
                 <Input id="grade" {...form.register("grade")} />
-                {form.formState.errors.grade && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.grade.message}
-                  </p>
-                )}
               </div>
               <div>
                 <Label htmlFor="school">School</Label>
                 <Input id="school" {...form.register("school")} />
-                {form.formState.errors.school && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.school.message}
-                  </p>
-                )}
               </div>
               <div>
                 <Label htmlFor="rollNumber">Roll Number</Label>
                 <Input id="rollNumber" {...form.register("rollNumber")} />
-                {form.formState.errors.rollNumber && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.rollNumber.message}
-                  </p>
-                )}
               </div>
               <div>
                 <Label htmlFor="gender">Gender</Label>
@@ -233,11 +165,6 @@ export default function KidsPage() {
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
-                {form.formState.errors.gender && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.gender.message}
-                  </p>
-                )}
               </div>
               <Button
                 type="submit"

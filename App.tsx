@@ -7,7 +7,6 @@ import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import KidsScreen from './src/screens/KidsScreen';
 import LunchSelectionScreen from './src/screens/LunchSelectionScreen';
-import AdminScreen from './src/screens/AdminScreen';
 import { AuthProvider } from './src/hooks/useAuth';
 
 const Stack = createNativeStackNavigator();
@@ -53,11 +52,6 @@ function App() {
               name="LunchSelection" 
               component={LunchSelectionScreen}
               options={{ title: 'Lunch Selection' }}
-            />
-            <Stack.Screen 
-              name="Admin" 
-              component={AdminScreen}
-              options={{ title: 'Admin Dashboard' }}
             />
           </Stack.Navigator>
         </AuthProvider>

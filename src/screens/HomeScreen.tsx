@@ -10,19 +10,19 @@ import {
   Button,
   useTheme,
   Appbar,
-  Menu,
+  SegmentedButtons,
 } from 'react-native-paper';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { MonthlyMenuItem } from '../../shared/schema';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Auth: undefined;
   Home: undefined;
   Profile: undefined;
   Kids: undefined;
-  Admin: undefined;
   LunchSelection: { kidId?: number };
 };
 
@@ -31,14 +31,13 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export default function HomeScreen({ navigation }: Props) {
   const { user, logoutMutation } = useAuth();
   const theme = useTheme();
-  const [menuVisible, setMenuVisible] = React.useState(false);
   const [menuType, setMenuType] = React.useState('veg');
 
   const { data: menuItems = [], isLoading } = useQuery<MonthlyMenuItem[]>({
     queryKey: [`/api/menu/${new Date().getFullYear()}/${new Date().getMonth() + 1}`],
   });
 
-  console.log('Menu Items:', menuItems);
+  console.log('Menu Items:', menuItems); // Add logging to debug
 
   const vegItems = menuItems?.filter(item => item.isVegetarian) || [];
   const nonVegItems = menuItems?.filter(item => !item.isVegetarian) || [];
@@ -58,34 +57,10 @@ export default function HomeScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <Appbar.Header>
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          anchor={
-            <Appbar.Action
-              icon="menu"
-              onPress={() => setMenuVisible(true)}
-            />
-          }
-        >
-          <Menu.Item 
-            onPress={() => {
-              setMenuVisible(false);
-              navigation.navigate('Profile');
-            }} 
-            title="Profile"
-          />
-          {user?.isAdmin && (
-            <Menu.Item 
-              onPress={() => {
-                setMenuVisible(false);
-                navigation.navigate('Admin');
-              }} 
-              title="Admin Dashboard"
-            />
-          )}
-          <Menu.Item onPress={handleLogout} title="Logout" />
-        </Menu>
+        <Appbar.Action 
+          icon="menu" 
+          onPress={() => navigation.navigate('Profile')} 
+        />
         <Appbar.Content title="Khana Dabba" />
       </Appbar.Header>
 
