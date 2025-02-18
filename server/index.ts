@@ -51,7 +51,7 @@ app.use((req, res, next) => {
     });
 
     // Setup vite in development and static serving in production
-    if (app.get("env") === "development") {
+    if (process.env.NODE_ENV === "development") {
       log("Setting up development server with Vite...");
       await setupVite(app, server);
     } else {
@@ -77,6 +77,10 @@ app.use((req, res, next) => {
     // Bind to 0.0.0.0 for Replit hosting
     server.listen(PORT, HOST, () => {
       log(`🚀 Server running in ${app.get("env")} mode at http://${HOST}:${PORT}`);
+      // Add additional logging for debugging
+      log(`Environment: ${process.env.NODE_ENV}`);
+      log(`Port: ${PORT}`);
+      log(`Host: ${HOST}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
