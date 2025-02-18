@@ -319,19 +319,62 @@ export default function LunchSelectionPage() {
                       .rdp-day_selected {
                         background-color: hsl(var(--primary));
                         color: white;
+                        outline: 2px solid hsl(var(--primary));
+                        outline-offset: 2px;
                       }
                       .rdp-day_selected:hover {
                         background-color: hsl(var(--primary));
                       }
-                      .rdp-nav {
-                        display: none;
+                      .veg-selected {
+                        background-color: hsl(142.1 70.2% 29.3%);
+                        color: white;
+                      }
+                      .veg-selected.rdp-day_selected {
+                        outline: 2px solid hsl(142.1 70.2% 29.3%);
+                        outline-offset: 2px;
+                      }
+                      .veg-selected:hover {
+                        background-color: hsl(142.1 70.2% 29.3%);
+                      }
+                      .non-veg-selected {
+                        background-color: hsl(0 72.2% 50.6%);
+                        color: white;
+                      }
+                      .non-veg-selected.rdp-day_selected {
+                        outline: 2px solid hsl(0 72.2% 50.6%);
+                        outline-offset: 2px;
+                      }
+                      .non-veg-selected:hover {
+                        background-color: hsl(0 72.2% 50.6%);
+                      }
+                      .rdp-day_disabled {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+                      }
+                      .rdp-day_disabled.holiday,
+                      .holiday {
+                        background-color: hsl(var(--muted)) !important;
+                        color: hsl(var(--muted-foreground)) !important;
+                        opacity: 0.9;
+                        font-weight: 500;
+                        background-image: repeating-linear-gradient(
+                          45deg,
+                          transparent,
+                          transparent 5px,
+                          rgba(0,0,0,0.1) 5px,
+                          rgba(0,0,0,0.1) 10px
+                        );
+                      }
+                      .holiday:hover:not([disabled]) {
+                        background-color: hsl(var(--muted)) !important;
+                        color: hsl(var(--muted-foreground)) !important;
                       }
                       .rdp-head_cell {
                         font-weight: 500;
                         font-size: 0.875rem;
                         color: hsl(var(--muted-foreground));
                       }
-                      .rdp-caption {
+                      .rdp-nav {
                         display: none;
                       }
                     `}
@@ -342,6 +385,22 @@ export default function LunchSelectionPage() {
                     onSelect={handleDateSelect}
                     disabled={disabledDays}
                     month={currentMonth}
+                    modifiers={{
+                      selected: selectedDates,
+                      vegSelected: existingSelections
+                        .filter(s => menuItems.find(m => m.id === s.menuItemId)?.isVegetarian)
+                        .map(s => new Date(s.date)),
+                      nonVegSelected: existingSelections
+                        .filter(s => !menuItems.find(m => m.id === s.menuItemId)?.isVegetarian)
+                        .map(s => new Date(s.date)),
+                      holiday: holidays.map(h => new Date(h.date))
+                    }}
+                    modifiersClassNames={{
+                      selected: "rdp-day_selected",
+                      vegSelected: "veg-selected",
+                      nonVegSelected: "non-veg-selected",
+                      holiday: "holiday"
+                    }}
                     className="border rounded-lg p-4"
                   />
                   <Button
