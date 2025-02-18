@@ -207,7 +207,6 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
 
   const vegOptions = menuItems.filter((item) => item.isVegetarian);
   const nonVegOptions = menuItems.filter((item) => !item.isVegetarian);
-  const tomorrow = addDays(new Date(), 1);
 
   const getSelectionForDate = (date: Date) => {
     return existingSelections.find((selection) =>
@@ -258,7 +257,6 @@ export default function LunchSelectionScreen({ navigation, route }: Props) {
     setSelectedDates([]);
     setStep('dates');
   }, [selectedKidId]);
-
 
   return (
     <View style={styles.container}>
